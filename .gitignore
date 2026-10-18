@@ -83,6 +83,9 @@ rosbag2_*/
 datasets/
 data/raw/
 data/processed/
+cache/
+model_cache/
+recordings/
 
 # --- Gazebo & Simulation Logs / Runtime Dumps ---
 *.log
@@ -109,8 +112,8 @@ desktop.ini
 
 # --- Local Environment & Secrets ---
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.key
 *.pem
 credentials.json

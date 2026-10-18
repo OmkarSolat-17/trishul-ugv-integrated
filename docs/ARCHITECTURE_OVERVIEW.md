@@ -57,11 +57,11 @@ graph TD
         AI -.-> RVIZ
     end
 
-    classDef sim fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef perc fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef loc fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
-    classDef nav fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef bring fill:#eceff1,stroke:#455a64,stroke-width:2px;
+    classDef sim fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#1f2937;
+    classDef perc fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#1f2937;
+    classDef loc fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1f2937;
+    classDef nav fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#1f2937;
+    classDef bring fill:#eceff1,stroke:#455a64,stroke-width:2px,color:#1f2937;
 
     class GZ,URDF,BRIDGE sim;
     class CAM,AI,TRAV perc;
