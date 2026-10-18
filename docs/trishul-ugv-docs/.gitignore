@@ -1,0 +1,46 @@
+# ROS 2 / colcon build outputs
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Generated data and logs
+*.log
+cache/
+model_cache/
+datasets/
+recordings/
+
+# Local ROS bags (keep only if explicitly approved)
+*.db3
+*.mcap
+
+# Keep project result documentation/screenshots that are intentionally committed.
+# Do not ignore the entire results/ directory.

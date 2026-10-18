@@ -1,0 +1,121 @@
+# ==============================================================================
+# Trishul UGV - Git Ignore Configuration
+# Designed for ROS 2 Jazzy (Ubuntu 24.04 / WSL 2) + Python/C++ Workspace
+# ==============================================================================
+
+# --- ROS 2 / Colcon Build Artifacts ---
+# Generated build directories from `colcon build`
+build/
+install/
+log/
+COLCON_IGNORE
+colcon.meta
+
+# --- C / C++ Compilation Artifacts ---
+*.o
+*.obj
+*.so
+*.dylib
+*.a
+*.lib
+*.dll
+*.exe
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CMakeScripts/
+Makefile
+
+# --- Python Artifacts & Environments ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- ROS Bag Files & Runtime Telemetry ---
+# Bag files and sensor recordings can quickly grow to tens of gigabytes
+*.bag
+*.db3
+*.db3-wal
+*.db3-shm
+*.mcap
+*.pcap
+rosbag2_*/
+
+# --- Heavy AI Models, Weights & Datasets ---
+# Keep repository lightweight. Store weights/datasets externally or on shared drives.
+*.pt
+*.pth
+*.onnx
+*.engine
+*.tflite
+*.weights
+*.bin
+*.safetensors
+*.h5
+*.hdf5
+datasets/
+data/raw/
+data/processed/
+
+# --- Gazebo & Simulation Logs / Runtime Dumps ---
+*.log
+~/.gazebo/
+~/.gz/
+.ignition/
+.sdformat/
+*.pcd
+*.ply
+
+# --- IDEs, Editors & OS Files ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# --- Local Environment & Secrets ---
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+credentials.json
+
+# --- Results & Temporary Outputs ---
+# Keep results directory structure via results/.gitkeep, but ignore test dumps
+results/runs/*
+!results/.gitkeep

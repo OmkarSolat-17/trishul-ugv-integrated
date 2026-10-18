@@ -1,0 +1,24 @@
+# ==============================================================================
+# Trishul UGV - Python Dependencies
+# Target: Ubuntu 24.04 LTS (Noble Numbat) / Python 3.12+ / ROS 2 Jazzy
+#
+# NOTE: In Ubuntu 24.04 (PEP 668), global pip install is externally managed.
+# For ROS 2 nodes, prefer installing system apt packages where available:
+#   e.g. `sudo apt install python3-numpy python3-opencv`
+# For custom AI models / virtual environments, install via pip in a venv.
+# ==============================================================================
+
+# Core numerical & image processing (uncomment/freeze when perception lead selects stack)
+# numpy>=1.26.0
+# opencv-python>=4.9.0
+
+# AI / Deep Learning Inference (to be evaluated by Vision/AI Lead)
+# onnxruntime>=1.18.0
+# torch>=2.3.0
+# torchvision>=0.18.0
+# ultralytics>=8.2.0
+
+# Development & Code Quality Tools
+flake8>=7.0.0
+mypy>=1.10.0
+pytest>=8.2.0
