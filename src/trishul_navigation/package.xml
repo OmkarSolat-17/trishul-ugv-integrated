@@ -3,15 +3,17 @@
 <package format="3">
   <name>trishul_navigation</name>
   <version>0.0.0</version>
-  <description>Trishul UGV navigation package with sensor monitor and status nodes</description>
+  <description>Trishul UGV navigation package with sensor monitor, safety braking, and mission navigation</description>
   <maintainer email="munikshitij@gmail.com">kshitij</maintainer>
   <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
 
   <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_simple_commander</exec_depend>
   <exec_depend>rviz2</exec_depend>
 
   <test_depend>ament_copyright</test_depend>

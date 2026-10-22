@@ -24,7 +24,7 @@ setup(
     zip_safe=True,
     maintainer='kshitij',
     maintainer_email='munikshitij@gmail.com',
-    description='Trishul UGV navigation package with sensor monitor and status nodes',
+    description='Trishul UGV autonomous navigation and active safety package',
     license='Apache-2.0',
     extras_require={
         'test': [
@@ -35,6 +35,7 @@ setup(
         'console_scripts': [
             'status_node = trishul_navigation.status_node:main',
             'sensor_monitor = trishul_navigation.sensor_monitor:main',
+            'mission_navigator = trishul_navigation.mission_navigator:main',
         ],
     },
 )
