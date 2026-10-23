@@ -474,6 +474,14 @@ class TrishulDashboardServerNode(Node):
                 self.shared_state.update_raw_frame(img)
                 if self.shared_state.latest_jpeg is None:
                     self.shared_state.update_frame(img)
+            elif msg.encoding == '32FC1':
+                depth = np.frombuffer(msg.data, dtype=np.float32).reshape((msg.height, msg.width))
+                depth_clean = np.nan_to_num(depth, nan=0.0, posinf=5.0, neginf=0.0)
+                depth_scaled = np.clip(depth_clean / 5.0 * 255.0, 0, 255).astype(np.uint8)
+                img = cv2.applyColorMap(depth_scaled, cv2.COLORMAP_TURBO)
+                self.shared_state.update_raw_frame(img)
+                if self.shared_state.latest_jpeg is None:
+                    self.shared_state.update_frame(img)
         except Exception:
             pass
 

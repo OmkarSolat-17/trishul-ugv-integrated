@@ -1,3 +1,5 @@
+import cv2
+import numpy as np
 import os
 import json
 import rclpy
@@ -63,7 +65,17 @@ class ImageProcessor(Node):
 
     def image_callback(self, msg):
         try:
-            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            if msg.encoding in ('32FC1', '16UC1'):
+                # Convert depth sensor floating-point distance data into false-color tactical visualizer
+                depth_img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+                depth_clean = np.nan_to_num(depth_img, nan=0.0, posinf=5.0, neginf=0.0)
+                depth_scaled = np.clip(depth_clean / 5.0 * 255.0, 0, 255).astype(np.uint8)
+                frame = cv2.applyColorMap(depth_scaled, cv2.COLORMAP_TURBO)
+            elif msg.encoding == 'mono8':
+                gray = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
+                frame = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+            else:
+                frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
             detections_list = []
 
             if self.model is not None:
