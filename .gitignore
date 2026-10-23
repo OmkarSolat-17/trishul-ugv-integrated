@@ -122,3 +122,4 @@ credentials.json
 # Keep results directory structure via results/.gitkeep, but ignore test dumps
 results/runs/*
 !results/.gitkeep
+!src/trishul_perception/models/*.pt
