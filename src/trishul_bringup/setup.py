@@ -16,6 +16,12 @@ setup(
             glob('launch/*launch.[pxy][yma]*')),
         (os.path.join('share', package_name, 'config'),
             glob('config/*.yaml')),
+        (os.path.join('share', package_name, 'web'),
+            glob('web/*.*')),
+        (os.path.join('share', package_name, 'web', 'css'),
+            glob('web/css/*.*')),
+        (os.path.join('share', package_name, 'web', 'js'),
+            glob('web/js/*.*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,6 +31,8 @@ setup(
     license='Apache-2.0',
     extras_require={'test': ['pytest']},
     entry_points={
-        'console_scripts': [],
+        'console_scripts': [
+            'dashboard_server = trishul_bringup.dashboard_server:main',
+        ],
     },
 )

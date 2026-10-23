@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRISHUL UGV — Tactical Mission Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="cyber-tactical">
+    <!-- Top Tactical Navigation Bar -->
+    <header class="top-bar">
+        <div class="brand-cluster">
+            <div class="radar-beacon"></div>
+            <div class="brand-text">
+                <h1>TRISHUL UGV</h1>
+                <span class="sub-tag">AUTONOMOUS MISSION CONTROL v2.4</span>
+            </div>
+        </div>
+
+        <div class="telemetry-badges">
+            <div class="badge badge-green" id="badge-sys-status">
+                <span class="pulse-dot" id="sys-pulse-dot"></span>
+                <span class="badge-label">SYS:</span>
+                <span class="badge-val" id="val-sys-status">AUTONOMOUS READY</span>
+            </div>
+            <div class="badge badge-cyan">
+                <span class="badge-label">FEED:</span>
+                <span class="badge-val">/ugv/combined/image</span>
+            </div>
+            <div class="badge badge-orange" id="badge-battery">
+                <span class="badge-label">BATTERY:</span>
+                <span class="badge-val" id="val-battery">98% [24.4V]</span>
+            </div>
+            <div class="badge badge-slate">
+                <span class="badge-label">UPTIME:</span>
+                <span class="badge-val" id="val-uptime">00:00:00</span>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <button class="btn-estop" id="btn-estop-toggle" title="Emergency Stop">
+                <span class="estop-icon">🛑</span> <span id="estop-btn-text">EMERGENCY STOP</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Command Grid -->
+    <main class="command-grid">
+        <!-- Left Column: Tactical AI Vision & Detection Feed -->
+        <section class="panel panel-vision">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="hud-bracket">[</span>
+                    VERIFIED AI VISION STREAM
+                    <span class="hud-bracket">]</span>
+                </div>
+                <div class="camera-selectors">
+                    <button class="cam-btn active" title="Active verified stream: /ugv/combined/image">FRONT (YOLO ACTIVE)</button>
+                    <button class="cam-btn disabled" disabled title="Pending 4-camera UGV hardware model">STEREO (OFFLINE)</button>
+                    <button class="cam-btn disabled" disabled title="Pending 4-camera UGV hardware model">REAR (OFFLINE)</button>
+                </div>
+            </div>
+
+            <div class="video-viewport">
+                <img src="/stream/video" id="live-video-feed" alt="Live UGV Camera Stream" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'640\' height=\'480\' viewBox=\'0 0 640 480\'><rect fill=\'%230b1017\' width=\'640\' height=\'480\'/><text fill=\'%2300f2fe\' font-family=\'monospace\' font-size=\'18\' x=\'50%\' y=\'50%\' text-anchor=\'middle\'>CONNECTING TO UGV AI VISION STREAM...</text></svg>'">
+                
+                <!-- Tactical Crosshair & Corner Brackets -->
+                <div class="hud-overlay">
+                    <div class="corner-bracket top-left"></div>
+                    <div class="corner-bracket top-right"></div>
+                    <div class="corner-bracket bottom-left"></div>
+                    <div class="corner-bracket bottom-right"></div>
+                    <div class="hud-crosshair">
+                        <div class="reticle-ring"></div>
+                        <div class="reticle-lines"></div>
+                    </div>
+                    <div class="hud-target-lock" id="hud-target-lock">
+                        <span class="lock-label">YOLOv8 PERCEPTION ENGAGED</span>
+                        <span class="lock-fps" id="val-fps">30 FPS</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Detection Inspector Bar -->
+            <div class="detection-inspector">
+                <div class="inspector-header">
+                    <span>ACTIVE TARGET DETECTIONS</span>
+                    <span class="detection-count" id="val-detection-count">0 TARGETS</span>
+                </div>
+                <div class="detection-chips" id="detection-chips-container">
+                    <span class="chip-placeholder">Awaiting target classification...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Interactive SLAM Radar & Path Planner -->
+        <section class="panel panel-radar">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="hud-bracket">[</span>
+                    LIVE SLAM OCCUPANCYGRID &amp; NAV2 ACTION CLIENT
+                    <span class="hud-bracket">]</span>
+                </div>
+                <div class="radar-mode-badges">
+                    <span class="badge-pill" id="slam-mode-badge">SLAM: REAL MAP</span>
+                    <span class="badge-pill badge-pill-cyan">CLICK CANVAS TO NAVIGATE</span>
+                </div>
+            </div>
+
+            <div class="radar-canvas-wrapper">
+                <canvas id="radar-canvas" width="600" height="420"></canvas>
+                <div class="radar-overlay-stats">
+                    <div class="stat-box">
+                        <span class="stat-label">UGV POSE</span>
+                        <span class="stat-num" id="val-pose">(-2.00, -0.50)</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">NAV STATE</span>
+                        <span class="stat-num" id="val-nav-state">IDLE</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">DIST / ETA</span>
+                        <span class="stat-num" id="val-nav-dist">-- m | --s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Mission Dispatch Buttons -->
+            <div class="mission-actions-bar">
+                <button class="btn-tactical btn-mission" id="btn-patrol-1">
+                    🎯 PATROL SECTOR ALPHA
+                </button>
+                <button class="btn-tactical btn-mission" id="btn-patrol-2">
+                    🚩 RECON SECTOR BRAVO
+                </button>
+                <button class="btn-tactical btn-mission" id="btn-return-home">
+                    🏠 RETURN TO STAGING
+                </button>
+                <button class="btn-tactical btn-secondary" id="btn-clear-goal">
+                    ✖ PREEMPT GOAL
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Command & Diagnostics Strip -->
+    <footer class="bottom-cockpit">
+        <!-- Sub-panel 1: Teleoperation Controls -->
+        <div class="cockpit-card teleop-card">
+            <div class="card-title">MANUAL OVERRIDE / TELEOP</div>
+            <div class="teleop-flex">
+                <div class="dpad-grid">
+                    <div></div>
+                    <button class="dpad-btn" id="btn-drive-fwd" title="Forward (W)">W</button>
+                    <div></div>
+                    <button class="dpad-btn" id="btn-turn-left" title="Turn Left (A)">A</button>
+                    <button class="dpad-btn btn-brake" id="btn-brake" title="Stop (S)">S</button>
+                    <button class="dpad-btn" id="btn-turn-right" title="Turn Right (D)">D</button>
+                    <div></div>
+                    <button class="dpad-btn" id="btn-drive-rev" title="Reverse (X)">X</button>
+                    <div></div>
+                </div>
+                <div class="teleop-meta">
+                    <label for="speed-slider">SPEED LIMIT: <span id="val-speed-limit">0.25</span> m/s</label>
+                    <input type="range" id="speed-slider" min="0.05" max="0.50" step="0.05" value="0.25">
+                    <div class="keyboard-legend">Keyboard: <b>[W/A/S/D]</b> Drive | <b>[Space]</b> Brake</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sub-panel 2: Vehicle Telemetry Gauges -->
+        <div class="cockpit-card gauges-card">
+            <div class="card-title">VEHICLE TELEMETRY &amp; PROXIMITY</div>
+            <div class="gauges-grid">
+                <div class="gauge-item">
+                    <div class="gauge-value" id="val-linear-vel">0.00</div>
+                    <div class="gauge-label">LINEAR (m/s)</div>
+                </div>
+                <div class="gauge-item">
+                    <div class="gauge-value" id="val-angular-vel">0.00</div>
+                    <div class="gauge-label">ANGULAR (rad/s)</div>
+                </div>
+                <div class="gauge-item">
+                    <div class="gauge-value highlight-orange" id="val-closest-obs">-- m</div>
+                    <div class="gauge-label">CLOSEST OBSTACLE</div>
+                </div>
+                <div class="gauge-item">
+                    <div class="gauge-value highlight-green" id="val-safety-status">CLEAR</div>
+                    <div class="gauge-label">SAFETY CONTROLLER</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sub-panel 3: Live Mission Terminal Log -->
+        <div class="cockpit-card terminal-card">
+            <div class="card-title">
+                <span>MISSION EVENT STREAM</span>
+                <span class="terminal-live-tag">● STREAMING</span>
+            </div>
+            <div class="terminal-screen" id="terminal-feed">
+                <div class="log-line">[00:00:00] <span class="tag-info">[SYSTEM]</span> Trishul Tactical Mission Control initialized.</div>
+                <div class="log-line">[00:00:01] <span class="tag-yolo">[YOLO]</span> Perception engine active. Subscribed to /ugv/combined/image.</div>
+                <div class="log-line">[00:00:02] <span class="tag-nav">[NAV2]</span> Action Client connected to NavigateToPose.</div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

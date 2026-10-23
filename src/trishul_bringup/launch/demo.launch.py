@@ -8,6 +8,7 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 def generate_launch_description():
+    pkg_bringup = get_package_share_directory('trishul_bringup')
     pkg_nav = get_package_share_directory('trishul_navigation')
     pkg_perception = get_package_share_directory('trishul_perception')
 
@@ -20,9 +21,11 @@ def generate_launch_description():
     use_rviz = LaunchConfiguration('use_rviz')
     use_custom_world = LaunchConfiguration('use_custom_world')
     launch_perception = LaunchConfiguration('launch_perception')
+    launch_dashboard = LaunchConfiguration('launch_dashboard')
+    dashboard_port = LaunchConfiguration('dashboard_port')
     slam = LaunchConfiguration('slam')
 
-    # If use_custom_world is true, use city_normal.sdf.xacro and enable SLAM by default
+    # World selection
     world_file = PythonExpression([
         f"'{city_world_path}' if '", use_custom_world, "' == 'true' else '/opt/ros/jazzy/share/nav2_minimal_tb3_sim/worlds/tb3_sandbox.sdf.xacro'"
     ])
@@ -40,9 +43,13 @@ def generate_launch_description():
         DeclareLaunchArgument('use_rviz', default_value='True',
                               description='Launch RViz2 visualization'),
         DeclareLaunchArgument('use_custom_world', default_value='false',
-                              description='Set to true to use city_normal custom city world'),
+                              description='Set to true to use custom city world'),
         DeclareLaunchArgument('launch_perception', default_value='true',
                               description='Whether to start the YOLO perception node'),
+        DeclareLaunchArgument('launch_dashboard', default_value='true',
+                              description='Whether to start Trishul Mission Control Web Dashboard'),
+        DeclareLaunchArgument('dashboard_port', default_value='8080',
+                              description='Port for Mission Control Web Dashboard'),
         DeclareLaunchArgument('slam', default_value='False',
                               description='Whether to enable SLAM mapping'),
 
@@ -75,7 +82,7 @@ def generate_launch_description():
             }.items(),
         ),
 
-        # 3. Extra Bridge for Gazebo camera image -> ROS 2
+        # 3. Camera Bridge: Gazebo -> ROS 2
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
@@ -85,6 +92,20 @@ def generate_launch_description():
                 '/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
             ],
             parameters=[{'use_sim_time': use_sim_time}],
+            output='screen',
+        ),
+
+        # 4. TRISHUL UGV Mission Control Web Dashboard Node
+        Node(
+            package='trishul_bringup',
+            executable='dashboard_server',
+            name='trishul_dashboard_server',
+            condition=IfCondition(launch_dashboard),
+            parameters=[{
+                'use_sim_time': use_sim_time,
+                'port': dashboard_port,
+                'web_root': os.path.join(pkg_bringup, 'web'),
+            }],
             output='screen',
         ),
     ])
