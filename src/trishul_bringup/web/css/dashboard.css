@@ -669,3 +669,10 @@ body.cyber-tactical {
 .tag-yolo { color: var(--neon-orange); font-weight: 700; }
 .tag-nav { color: var(--neon-green); font-weight: 700; }
 .tag-danger { color: var(--neon-red); font-weight: 700; }
+
+/* Allow text selection in mission event terminal and telemetry values */
+#terminal-feed, .terminal-line, .telemetry-card .val, .hud-val, .badge {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    cursor: text;
+}

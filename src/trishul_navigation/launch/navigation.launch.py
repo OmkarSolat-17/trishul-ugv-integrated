@@ -20,6 +20,11 @@ def generate_launch_description():
         pkg_trishul_nav, 'rviz', 'trishul_nav.rviz'
     )
 
+    pkg_trishul_desc = get_package_share_directory('trishul_description')
+    default_robot_sdf = os.path.join(
+        pkg_trishul_desc, 'urdf', 'trishul_ugv.sdf.xacro'
+    )
+
     # Launch configuration variables
     use_sim_time = LaunchConfiguration('use_sim_time')
     params_file = LaunchConfiguration('params_file')
@@ -85,6 +90,7 @@ def generate_launch_description():
             'use_rviz': use_rviz,
             'world': world,
             'slam': slam,
+            'robot_sdf': default_robot_sdf,
         }.items(),
     )
 

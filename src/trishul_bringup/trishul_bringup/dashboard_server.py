@@ -37,6 +37,7 @@ class SharedDashboardState:
     def __init__(self):
         self.lock = threading.Lock()
         self.latest_jpeg = None
+        self.raw_jpeg = None
         self.pose = {'x': -2.0, 'y': -0.5, 'yaw': 0.0}
         self.vel = {'linear': 0.0, 'angular': 0.0}
         self.closest_obstacle = 20.0
@@ -82,10 +83,32 @@ class SharedDashboardState:
                     self.fps = round(0.9 * self.fps + 0.1 * (1.0 / dt), 1)
                 self._last_frame_time = now
 
-    def get_jpeg(self):
+    def update_raw_frame(self, bgr_img):
         with self.lock:
+            h, w = bgr_img.shape[:2]
+            cv2.putText(
+                bgr_img,
+                f"TRISHUL RAW CAMERA [/camera/image_raw] | {time.strftime('%H:%M:%S')}",
+                (14, h - 14),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (0, 242, 254),
+                1,
+                cv2.LINE_AA,
+            )
+            ret, jpeg = cv2.imencode('.jpg', bgr_img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if ret:
+                self.raw_jpeg = jpeg.tobytes()
+
+    def get_jpeg(self, feed='combined'):
+        with self.lock:
+            if feed == 'raw' and self.raw_jpeg is not None:
+                return self.raw_jpeg
             if self.latest_jpeg is not None:
                 return self.latest_jpeg
+            if self.raw_jpeg is not None:
+                return self.raw_jpeg
+
             # Standby test pattern
             img = np.zeros((480, 640, 3), dtype=np.uint8)
             img[:] = (12, 18, 28)
@@ -202,7 +225,8 @@ class DashboardHTTPRequestHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    frame = self.shared_state.get_jpeg()
+                    feed = 'raw' if 'feed=raw' in self.path else 'combined'
+                    frame = self.shared_state.get_jpeg(feed)
                     self.wfile.write(b'--frame\r\n')
                     self.send_header('Content-Type', 'image/jpeg')
                     self.send_header('Content-Length', str(len(frame)))
@@ -389,7 +413,7 @@ class TrishulDashboardServerNode(Node):
         )
 
         # Authoritative E-STOP Continuous Enforcement Timer (20 Hz)
-        self.estop_timer = self.create_timer(0.05, self._estop_enforcement_loop, callback_group=self.cb_group)
+        self.estop_timer = self.create_timer(0.02, self._estop_enforcement_loop, callback_group=self.cb_group)
 
         # Launch HTTP Server strictly bound to localhost (127.0.0.1)
         DashboardHTTPRequestHandler.web_dir = self.web_dir
@@ -412,8 +436,16 @@ class TrishulDashboardServerNode(Node):
         self._decode_image(msg)
 
     def raw_image_callback(self, msg: Image):
-        if self.shared_state.latest_jpeg is None:
-            self._decode_image(msg)
+        try:
+            if msg.encoding in ('bgr8', 'rgb8'):
+                img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
+                if msg.encoding == 'rgb8':
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                self.shared_state.update_raw_frame(img)
+                if self.shared_state.latest_jpeg is None:
+                    self.shared_state.update_frame(img)
+        except Exception:
+            pass
 
     def _decode_image(self, msg: Image):
         try:
