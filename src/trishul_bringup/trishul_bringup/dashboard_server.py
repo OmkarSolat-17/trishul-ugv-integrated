@@ -25,7 +25,9 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
-from geometry_msgs.msg import Twist, PoseStamped
+from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped
+import tf2_ros
+from rclpy.duration import Duration
 from nav2_msgs.action import NavigateToPose
 from nav_msgs.msg import Odometry, Path, OccupancyGrid
 from sensor_msgs.msg import Image, LaserScan
@@ -465,6 +467,25 @@ class TrishulDashboardServerNode(Node):
         self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.safety_cmd_pub = self.create_publisher(Twist, '/ugv/cmd_vel_request', 10)
 
+        # Authoritative Map-Frame Localization (TF2 map -> base_footprint)
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        self.has_map_pose = False
+
+        # AMCL Map Pose Subscriber
+        self.amcl_sub = self.create_subscription(
+            PoseWithCovarianceStamped,
+            '/amcl_pose',
+            self.amcl_callback,
+            10,
+            callback_group=self.cb_group
+        )
+
+        # 20 Hz Map-Frame Pose Synchronization Timer
+        self.pose_sync_timer = self.create_timer(
+            0.05, self._sync_map_pose, callback_group=self.cb_group
+        )
+
         # Nav2 Action Client (NavigateToPose)
         self.nav_action_client = ActionClient(
             self, NavigateToPose, 'navigate_to_pose', callback_group=self.cb_group
@@ -576,23 +597,62 @@ class TrishulDashboardServerNode(Node):
         except Exception:
             pass
 
-    def odom_callback(self, msg: Odometry):
+    def _sync_map_pose(self):
+        """Authoritative map-frame pose resolution identical to RViz and Nav2 costmaps."""
+        try:
+            t = self.tf_buffer.lookup_transform(
+                'map',
+                'base_footprint',
+                rclpy.time.Time(),
+                timeout=Duration(seconds=0.02)
+            )
+            px = t.transform.translation.x
+            py = t.transform.translation.y
+            qx = t.transform.rotation.x
+            qy = t.transform.rotation.y
+            qz = t.transform.rotation.z
+            qw = t.transform.rotation.w
+            siny_cosp = 2.0 * (qw * qz + qx * qy)
+            cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
+            yaw = math.atan2(siny_cosp, cosy_cosp)
+            with self.shared_state.lock:
+                self.shared_state.pose = {'x': round(px, 3), 'y': round(py, 3), 'yaw': round(yaw, 3)}
+            self.has_map_pose = True
+        except Exception:
+            pass
+
+    def amcl_callback(self, msg: PoseWithCovarianceStamped):
+        """AMCL particle filter pose callback in map frame."""
         px = msg.pose.pose.position.x
         py = msg.pose.pose.position.y
         qx = msg.pose.pose.orientation.x
         qy = msg.pose.pose.orientation.y
         qz = msg.pose.pose.orientation.z
         qw = msg.pose.pose.orientation.w
-        siny_cosp = 2 * (qw * qz + qx * qy)
-        cosy_cosp = 1 - 2 * (qy * qy + qz * qz)
+        siny_cosp = 2.0 * (qw * qz + qx * qy)
+        cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
         yaw = math.atan2(siny_cosp, cosy_cosp)
+        with self.shared_state.lock:
+            self.shared_state.pose = {'x': round(px, 3), 'y': round(py, 3), 'yaw': round(yaw, 3)}
+        self.has_map_pose = True
 
+    def odom_callback(self, msg: Odometry):
         vx = msg.twist.twist.linear.x
         wz = msg.twist.twist.angular.z
 
         with self.shared_state.lock:
-            self.shared_state.pose = {'x': px, 'y': py, 'yaw': yaw}
-            self.shared_state.vel = {'linear': vx, 'angular': wz}
+            self.shared_state.vel = {'linear': round(vx, 3), 'angular': round(wz, 3)}
+            if not self.has_map_pose:
+                px = msg.pose.pose.position.x
+                py = msg.pose.pose.position.y
+                qx = msg.pose.pose.orientation.x
+                qy = msg.pose.pose.orientation.y
+                qz = msg.pose.pose.orientation.z
+                qw = msg.pose.pose.orientation.w
+                siny_cosp = 2.0 * (qw * qz + qx * qy)
+                cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
+                yaw = math.atan2(siny_cosp, cosy_cosp)
+                self.shared_state.pose = {'x': round(px, 3), 'y': round(py, 3), 'yaw': round(yaw, 3)}
 
     def scan_callback(self, msg: LaserScan):
         ranges = msg.ranges

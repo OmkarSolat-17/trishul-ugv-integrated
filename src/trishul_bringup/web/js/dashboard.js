@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         connected: false,
         zoomScale: 45,
         viewMode: 'fixed', // 'fixed' (static arena, robot moves) or 'follow' (centered on robot)
-        arenaCenter: { x: -0.15, y: 0.0 },
+        arenaCenter: { x: 0.0, y: 0.0 },
         trail: [], // Pixels per meter
         activeFeed: 'combined',
         lastMapVersion: -1,
@@ -304,24 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return { x: sx, y: sy };
         }
 
-        // 1. Tactical Ceiling-View Arena Table Surface
-        // In tb3_sandbox, the active walled arena is -3.0m to +2.7m in X, and -2.6m to +2.6m in Y
-        const arenaMinX = -3.05;
-        const arenaMaxX = 2.75;
-        const arenaMinY = -2.65;
-        const arenaMaxY = 2.65;
-
-        const tableTL = worldToScreen(arenaMinX, arenaMaxY);
-        const tableBR = worldToScreen(arenaMaxX, arenaMinY);
-        const tableW = tableBR.x - tableTL.x;
-        const tableH = tableBR.y - tableTL.y;
-
-        // Draw Tactical Mission Table Floor
-        ctx.save();
-        ctx.fillStyle = '#111b2b';
-        ctx.fillRect(tableTL.x, tableTL.y, tableW, tableH);
-
-        // Render OccupancyGrid Map Tiles on top of floor
+        // 1. Tactical Map Rendering (Authoritative SLAM / Nav2 OccupancyGrid)
         if (state.mapMeta && state.mapMeta.width > 0 && state.mapImageLoaded && state.mapImageObj) {
             const meta = state.mapMeta;
             const mapTopWorldX = meta.origin_x;
@@ -330,39 +313,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const mapScreenWidth = meta.width * meta.resolution * scale;
             const mapScreenHeight = meta.height * meta.resolution * scale;
 
-            ctx.globalAlpha = 0.95;
+            ctx.save();
+            ctx.globalAlpha = 1.0;
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(state.mapImageObj, spTopLeft.x, spTopLeft.y, mapScreenWidth, mapScreenHeight);
+
+            // Subtle outer border & dimension tag
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(spTopLeft.x, spTopLeft.y, mapScreenWidth, mapScreenHeight);
+
+            ctx.fillStyle = 'rgba(0, 242, 254, 0.7)';
+            ctx.font = 'bold 9px monospace';
+            const realW = (meta.width * meta.resolution).toFixed(1);
+            const realH = (meta.height * meta.resolution).toFixed(1);
+            ctx.fillText(`SLAM MAP [${realW}m x ${realH}m @ ${meta.resolution}m]`, spTopLeft.x + 8, spTopLeft.y - 6);
+            ctx.restore();
         }
-
-        // Draw Glowing Tactical Arena Perimeter Wall
-        ctx.strokeStyle = '#00f2fe';
-        ctx.shadowColor = '#00f2fe';
-        ctx.shadowBlur = 6;
-        ctx.lineWidth = 2.5;
-        ctx.strokeRect(tableTL.x, tableTL.y, tableW, tableH);
-
-        // Corner Mission Brackets
-        const bLen = 14;
-        ctx.lineWidth = 3.5;
-        ctx.beginPath();
-        // TL
-        ctx.moveTo(tableTL.x, tableTL.y + bLen); ctx.lineTo(tableTL.x, tableTL.y); ctx.lineTo(tableTL.x + bLen, tableTL.y);
-        // TR
-        ctx.moveTo(tableBR.x - bLen, tableTL.y); ctx.lineTo(tableBR.x, tableTL.y); ctx.lineTo(tableBR.x, tableTL.y + bLen);
-        // BL
-        ctx.moveTo(tableTL.x, tableBR.y - bLen); ctx.lineTo(tableTL.x, tableBR.y); ctx.lineTo(tableTL.x + bLen, tableBR.y);
-        // BR
-        ctx.moveTo(tableBR.x - bLen, tableBR.y); ctx.lineTo(tableBR.x, tableBR.y); ctx.lineTo(tableBR.x, tableBR.y - bLen);
-        ctx.stroke();
-
-        // Arena Table Header Tag
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#00f2fe';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText('TOP-DOWN ARENA TABLE [5.8m x 5.3m]', tableTL.x + 8, tableTL.y - 6);
-        ctx.restore();
-
         // 2. Clean Tactical Top-Down Grid (Every 1.0 meter)
         ctx.save();
         ctx.strokeStyle = 'rgba(30, 41, 59, 0.6)';
@@ -646,18 +613,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function dispatchGoal(x, y, yaw = 0.0) {
-        // Clamp safely within the active arena table bounds
-        const safeMinX = -2.60;
-        const safeMaxX = 2.40;
-        const safeMinY = -2.20;
-        const safeMaxY = 2.20;
-        const clampedX = Math.max(safeMinX, Math.min(safeMaxX, x));
-        const clampedY = Math.max(safeMinY, Math.min(safeMaxY, y));
+        // Clamp dynamically within active map bounds (prevents sending goals into void)
+        if (state.mapMeta && state.mapMeta.width > 0) {
+            const meta = state.mapMeta;
+            const minX = meta.origin_x + 0.3;
+            const maxX = meta.origin_x + meta.width * meta.resolution - 0.3;
+            const minY = meta.origin_y + 0.3;
+            const maxY = meta.origin_y + meta.height * meta.resolution - 0.3;
+            x = Math.max(minX, Math.min(maxX, x));
+            y = Math.max(minY, Math.min(maxY, y));
+        }
 
-        state.currentGoal = { x: clampedX, y: clampedY };
-        logEvent('NAV2', `Dispatching Target Goal: (${clampedX.toFixed(2)}, ${clampedY.toFixed(2)})`);
-        x = clampedX;
-        y = clampedY;
+        state.currentGoal = { x, y };
+        logEvent('NAV2', `Dispatching Target Goal: (${x.toFixed(2)}, ${y.toFixed(2)})`);
 
         try {
             const resp = await fetch('/api/goal', {
@@ -679,12 +647,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------------- Preset Missions ----------------
     document.getElementById('btn-patrol-1')?.addEventListener('click', () => {
         logEvent('MISSION', 'Dispatching Preset: Patrol Sector Alpha');
-        dispatchGoal(1.8, -0.5, 0.0);
+        dispatchGoal(1.5, -0.5, 0.0);
     });
 
     document.getElementById('btn-patrol-2')?.addEventListener('click', () => {
         logEvent('MISSION', 'Dispatching Preset: Recon Sector Bravo');
-        dispatchGoal(-1.8, 1.2, 1.57);
+        dispatchGoal(-1.2, 0.8, 1.57);
     });
 
     document.getElementById('btn-return-home')?.addEventListener('click', () => {
