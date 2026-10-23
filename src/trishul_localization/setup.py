@@ -13,6 +13,8 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
     ],
     install_requires=['setuptools'],
+    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     zip_safe=True,
     maintainer='omkar',
     description='TRISHUL Localization and Mapping',
