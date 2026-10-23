@@ -26,6 +26,8 @@ def generate_launch_description():
     rviz_config = LaunchConfiguration('rviz_config')
     headless = LaunchConfiguration('headless')
     use_rviz = LaunchConfiguration('use_rviz')
+    world = LaunchConfiguration('world')
+    slam = LaunchConfiguration('slam')
 
     # Declare launch arguments
     declare_use_sim_time_cmd = DeclareLaunchArgument(
@@ -58,6 +60,18 @@ def generate_launch_description():
         description='Whether to start RViz',
     )
 
+    declare_world_cmd = DeclareLaunchArgument(
+        'world',
+        default_value='/opt/ros/jazzy/share/nav2_minimal_tb3_sim/worlds/tb3_sandbox.sdf.xacro',
+        description='Full path to world model file to load',
+    )
+
+    declare_slam_cmd = DeclareLaunchArgument(
+        'slam',
+        default_value='False',
+        description='Whether to run SLAM Toolbox instead of AMCL',
+    )
+
     # Include Nav2 simulation bringup with Trishul parameters
     nav2_sim_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -69,6 +83,8 @@ def generate_launch_description():
             'rviz_config_file': rviz_config,
             'headless': headless,
             'use_rviz': use_rviz,
+            'world': world,
+            'slam': slam,
         }.items(),
     )
 
@@ -97,6 +113,8 @@ def generate_launch_description():
     ld.add_action(declare_rviz_config_cmd)
     ld.add_action(declare_headless_cmd)
     ld.add_action(declare_use_rviz_cmd)
+    ld.add_action(declare_world_cmd)
+    ld.add_action(declare_slam_cmd)
 
     # Add execution actions
     ld.add_action(nav2_sim_cmd)
