@@ -44,16 +44,23 @@ def main(args=None):
     target_y = float(navigator.get_parameter('target_y').value)
     target_yaw = float(navigator.get_parameter('target_yaw').value)
 
-    # 1. Align initial position with Gazebo spawn point (-2.00, -0.50, yaw=0.0)
-    init_pose = create_pose(navigator, -2.00, -0.50, yaw_deg=0.0)
-    navigator.get_logger().info('Setting initial pose to match Gazebo: (-2.00, -0.50)...')
-    navigator.setInitialPose(init_pose)
+    # 1. Auto-detect whether AMCL or SLAM Toolbox is active
+    time.sleep(0.5)
+    service_names = [s[0] for s in navigator.get_service_names_and_types()]
+    amcl_active = any('amcl' in name for name in service_names)
 
-    # Allow AMCL and costmaps to settle
-    time.sleep(1.0)
+    if amcl_active:
+        init_pose = create_pose(navigator, -2.00, -0.50, yaw_deg=0.0)
+        navigator.get_logger().info('AMCL localization detected. Setting initial pose (-2.00, -0.50)...')
+        navigator.setInitialPose(init_pose)
+        time.sleep(1.0)
+        navigator.get_logger().info('Waiting for Nav2 stack (with AMCL) to become active...')
+        navigator.waitUntilNav2Active(localizer='amcl')
+    else:
+        navigator.get_logger().info('SLAM Toolbox / live mapping mode detected. Bypassing AMCL check...')
+        navigator.get_logger().info('Waiting for Nav2 stack to become active...')
+        navigator.waitUntilNav2Active(localizer='bt_navigator')
 
-    navigator.get_logger().info('Waiting for Nav2 stack to become active...')
-    navigator.waitUntilNav2Active()
     navigator.get_logger().info('Nav2 is active! Beginning navigation.')
 
     goal_pose = create_pose(navigator, target_x, target_y, target_yaw)
