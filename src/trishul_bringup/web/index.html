@@ -54,11 +54,11 @@
             <div class="panel-header">
                 <div class="panel-title">
                     <span class="hud-bracket">[</span>
-                    VERIFIED AI VISION STREAM
+                    AI VISION FEED [CAMERA NOT IN USE IN SIMULATION]
                     <span class="hud-bracket">]</span>
                 </div>
                 <div class="camera-selectors">
-                    <button class="cam-btn active" title="Active verified stream: /ugv/combined/image">FRONT (YOLO ACTIVE)</button>
+                    <button class="cam-btn active" title="Camera feed offline in tb3_sandbox. Navigation powered by 360 LiDAR.">CAMERA (OFFLINE IN SIM)</button>
                     <button class="cam-btn disabled" disabled title="Pending 4-camera UGV hardware model">STEREO (OFFLINE)</button>
                     <button class="cam-btn disabled" disabled title="Pending 4-camera UGV hardware model">REAR (OFFLINE)</button>
                 </div>
@@ -101,7 +101,7 @@
             <div class="panel-header">
                 <div class="panel-title">
                     <span class="hud-bracket">[</span>
-                    LIVE SLAM OCCUPANCYGRID &amp; NAV2 ACTION CLIENT
+                    TACTICAL 2D MAP &amp; 360° LIDAR SCANNER
                     <span class="hud-bracket">]</span>
                 </div>
                 <div class="radar-mode-badges">
@@ -130,6 +130,9 @@
 
             <!-- Quick Mission Dispatch Buttons -->
             <div class="mission-actions-bar">
+                <button class="btn-tactical btn-mission" id="btn-quick-step" style="background: rgba(0, 242, 254, 0.15); border-color: #00f2fe; color: #00f2fe; font-weight: bold;">
+                    ⚡ DRIVE AHEAD (+1.2M)
+                </button>
                 <button class="btn-tactical btn-mission" id="btn-patrol-1">
                     🎯 PATROL SECTOR ALPHA
                 </button>

@@ -299,44 +299,67 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        // 2. Tactical Range Rings (Centered on robot)
-        ctx.strokeStyle = 'rgba(0, 242, 254, 0.12)';
+        // 2. Clean Tactical Top-Down Grid (Every 1.0 meter)
+        ctx.save();
+        ctx.strokeStyle = 'rgba(30, 41, 59, 0.6)';
         ctx.lineWidth = 1;
-        [1, 2, 3, 5, 8].forEach((r) => {
+        const startX = Math.floor(state.pose.x - (w / 2) / scale) - 1;
+        const endX = Math.ceil(state.pose.x + (w / 2) / scale) + 1;
+        const startY = Math.floor(state.pose.y - (h / 2) / scale) - 1;
+        const endY = Math.ceil(state.pose.y + (h / 2) / scale) + 1;
+
+        for (let gx = startX; gx <= endX; gx += 1.0) {
+            const sp = worldToScreen(gx, 0);
             ctx.beginPath();
-            ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
+            ctx.moveTo(sp.x, 0);
+            ctx.lineTo(sp.x, h);
             ctx.stroke();
+        }
+        for (let gy = startY; gy <= endY; gy += 1.0) {
+            const sp = worldToScreen(0, gy);
+            ctx.beginPath();
+            ctx.moveTo(0, sp.y);
+            ctx.lineTo(w, sp.y);
+            ctx.stroke();
+        }
+        ctx.restore();
 
-            ctx.fillStyle = 'rgba(0, 242, 254, 0.35)';
-            ctx.font = '9px monospace';
-            ctx.fillText(`${r}m`, cx + r * scale + 3, cy - 3);
-        });
-
-        // Crosshair Axes (East-West & North-South)
-        ctx.strokeStyle = 'rgba(0, 242, 254, 0.10)';
-        ctx.beginPath();
-        ctx.moveTo(0, cy); ctx.lineTo(w, cy);
-        ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
-        ctx.stroke();
-
-        // 3. Draw 360 LiDAR Scan Points (Rotated to World Frame with Robot Yaw)
+        // 3. Draw Active 360 LiDAR Scan Returns (Clearly Shows Environment Scanning)
         if (state.laserPoints && state.laserPoints.length > 0) {
-            ctx.fillStyle = '#00f2fe';
             const cos_yaw = Math.cos(state.pose.yaw);
             const sin_yaw = Math.sin(state.pose.yaw);
 
+            // Draw subtle cyan scan beams from robot to obstacles
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.08)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
             state.laserPoints.forEach((pt) => {
-                const rx = pt[0]; // Forward in robot body
-                const ry = pt[1]; // Left in robot body
-                // Transform to world coordinates
+                const rx = pt[0];
+                const ry = pt[1];
                 const wx = state.pose.x + (rx * cos_yaw - ry * sin_yaw);
                 const wy = state.pose.y + (rx * sin_yaw + ry * cos_yaw);
+                const sp = worldToScreen(wx, wy);
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(sp.x, sp.y);
+            });
+            ctx.stroke();
 
+            // Draw bright glowing obstacle points
+            ctx.fillStyle = '#00f2fe';
+            ctx.shadowColor = '#00f2fe';
+            ctx.shadowBlur = 4;
+            state.laserPoints.forEach((pt) => {
+                const rx = pt[0];
+                const ry = pt[1];
+                const wx = state.pose.x + (rx * cos_yaw - ry * sin_yaw);
+                const wy = state.pose.y + (rx * sin_yaw + ry * cos_yaw);
                 const sp = worldToScreen(wx, wy);
                 if (sp.x >= 0 && sp.x <= w && sp.y >= 0 && sp.y <= h) {
-                    ctx.fillRect(sp.x - 1.5, sp.y - 1.5, 3, 3);
+                    ctx.fillRect(sp.x - 2, sp.y - 2, 4, 4);
                 }
             });
+            ctx.restore();
         }
 
         // 4. Draw Planned Path (from Nav2)
@@ -404,6 +427,39 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.stroke();
 
         ctx.restore();
+
+        // 7. Interactive Hover Target Crosshair & Coordinate Tooltip
+        if (hoverWorldCoord) {
+            ctx.save();
+            ctx.strokeStyle = '#ff9100';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            // Crosshairs
+            ctx.beginPath();
+            ctx.moveTo(hoverWorldCoord.sx - 12, hoverWorldCoord.sy);
+            ctx.lineTo(hoverWorldCoord.sx + 12, hoverWorldCoord.sy);
+            ctx.moveTo(hoverWorldCoord.sx, hoverWorldCoord.sy - 12);
+            ctx.lineTo(hoverWorldCoord.sx, hoverWorldCoord.sy + 12);
+            ctx.stroke();
+
+            // Small reticle circle
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.arc(hoverWorldCoord.sx, hoverWorldCoord.sy, 6, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Coordinate label badge
+            const label = `TARGET: (${hoverWorldCoord.wx.toFixed(2)}, ${hoverWorldCoord.wy.toFixed(2)}) m`;
+            ctx.font = 'bold 11px monospace';
+            const textWidth = ctx.measureText(label).width;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            ctx.fillRect(hoverWorldCoord.sx + 12, hoverWorldCoord.sy - 18, textWidth + 14, 22);
+            ctx.strokeStyle = '#ff9100';
+            ctx.strokeRect(hoverWorldCoord.sx + 12, hoverWorldCoord.sy - 18, textWidth + 14, 22);
+            ctx.fillStyle = '#ff9100';
+            ctx.fillText(label, hoverWorldCoord.sx + 18, hoverWorldCoord.sy - 3);
+            ctx.restore();
+        }
 
         requestAnimationFrame(drawRadar);
     }
@@ -618,3 +674,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+    const btnQuickStep = document.getElementById('btn-quick-step');
+    if (btnQuickStep) {
+        btnQuickStep.addEventListener('click', () => {
+            const stepDist = 1.2;
+            const targetX = state.pose.x + stepDist * Math.cos(state.pose.yaw);
+            const targetY = state.pose.y + stepDist * Math.sin(state.pose.yaw);
+            logEvent('NAV2', `Quick Step Ahead (+${stepDist}m): Dispatching to (${targetX.toFixed(2)}, ${targetY.toFixed(2)})`);
+            dispatchGoal(targetX, targetY, state.pose.yaw);
+        });
+    }

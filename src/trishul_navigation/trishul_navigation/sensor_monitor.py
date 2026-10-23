@@ -36,7 +36,7 @@ class SensorMonitor(Node):
             (distance, index)
             for index, distance in enumerate(msg.ranges)
             if math.isfinite(distance)
-            and msg.range_min <= distance <= msg.range_max
+            and max(0.20, msg.range_min) <= distance <= msg.range_max
         ]
 
         if not valid_readings:

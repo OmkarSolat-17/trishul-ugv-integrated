@@ -110,59 +110,60 @@ class SharedDashboardState:
             if self.raw_jpeg is not None:
                 return self.raw_jpeg
 
-            # Dynamic Tactical HUD Camera Stream
+            # Tactical Simulation Status Screen (Camera Offline Notification)
             img = np.zeros((480, 640, 3), dtype=np.uint8)
-            img[:] = (10, 16, 26)
+            img[:] = (12, 16, 24)
+
+            # Subtle grid background
             for x in range(0, 640, 40):
-                cv2.line(img, (x, 0), (x, 480), (18, 26, 40), 1)
+                cv2.line(img, (x, 0), (x, 480), (18, 25, 38), 1)
             for y in range(0, 480, 40):
-                cv2.line(img, (0, y), (640, y), (18, 26, 40), 1)
+                cv2.line(img, (0, y), (640, y), (18, 25, 38), 1)
 
+            # Outer bounding box
+            cv2.rectangle(img, (20, 20), (620, 460), (0, 180, 216), 1)
+            cv2.rectangle(img, (24, 24), (616, 456), (30, 41, 59), 1)
+
+            # Header
+            cv2.putText(img, "TRISHUL UGV -- MISSION CONTROL VISION FEED", (40, 65),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 242, 254), 2, cv2.LINE_AA)
+
+            # Status Warning Box
+            cv2.rectangle(img, (40, 95), (600, 195), (20, 30, 45), -1)
+            cv2.rectangle(img, (40, 95), (600, 195), (255, 171, 0), 1)
+
+            cv2.putText(img, "[!] SENSOR STATUS: CAMERA NOT IN USE IN SIMULATION", (56, 130),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 171, 0), 2, cv2.LINE_AA)
+            cv2.putText(img, "tb3_sandbox simulation uses 360-degree LiDAR and SLAM OccupancyGrid.", (56, 158),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.44, (203, 213, 225), 1, cv2.LINE_AA)
+            cv2.putText(img, "Autonomous Path Planning & Avoidance are active via LiDAR on right map.", (56, 180),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.44, (148, 163, 184), 1, cv2.LINE_AA)
+
+            # Live Diagnostics
             t = time.time()
-            sweep_angle = (t * 2.5) % (2 * math.pi)
-            sx = int(320 + 100 * math.cos(sweep_angle))
-            sy = int(240 + 100 * math.sin(sweep_angle))
-            cv2.line(img, (320, 240), (sx, sy), (0, 242, 254), 1)
-            cv2.circle(img, (320, 240), 100, (0, 242, 254), 1)
-            cv2.circle(img, (320, 240), 60, (0, 180, 210), 1)
-            cv2.circle(img, (320, 240), 4, (0, 242, 254), -1)
+            cv2.putText(img, f"NAV STATE: {self.nav_state}", (56, 235),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.50, (0, 242, 254), 1, cv2.LINE_AA)
+            cv2.putText(img, f"UGV POSE: ({self.pose['x']:.2f}, {self.pose['y']:.2f}) @ {math.degrees(self.pose['yaw']):.0f} deg", (56, 265),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.50, (226, 232, 240), 1, cv2.LINE_AA)
+            cv2.putText(img, f"CLOSEST OBSTACLE: {self.closest_obstacle:.2f} m", (56, 295),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.50, (0, 230, 118) if self.closest_obstacle > 0.6 else (255, 82, 82), 1, cv2.LINE_AA)
+            cv2.putText(img, f"ACTIVE LIDAR POINTS: {len(self.laser_points)} returns", (56, 325),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.50, (148, 163, 184), 1, cv2.LINE_AA)
 
-            # Artificial horizon
-            cv2.line(img, (220, 240), (420, 240), (0, 242, 254), 2)
-            cv2.line(img, (300, 220), (340, 220), (0, 180, 210), 1)
-            cv2.line(img, (300, 260), (340, 260), (0, 180, 210), 1)
+            # Instruction Footnote
+            cv2.rectangle(img, (40, 360), (600, 435), (15, 23, 42), -1)
+            cv2.rectangle(img, (40, 360), (600, 435), (51, 65, 85), 1)
+            cv2.putText(img, ">> HOW TO NAVIGATE:", (56, 385),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, (0, 242, 254), 1, cv2.LINE_AA)
+            cv2.putText(img, "Click any point on the Tactical Map panel to set a Nav2 target,", (56, 405),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.42, (203, 213, 225), 1, cv2.LINE_AA)
+            cv2.putText(img, "or click 'PATROL SECTOR ALPHA' below the map for auto-dispatch.", (56, 423),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.42, (148, 163, 184), 1, cv2.LINE_AA)
 
-            cv2.putText(
-                img,
-                "TRISHUL UGV -- PRIMARY FORWARD CAMERA",
-                (140, 40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.58,
-                (0, 242, 254),
-                2,
-                cv2.LINE_AA,
-            )
-            cv2.putText(
-                img,
-                f"SYS STATUS: TELEMETRY ACTIVE | RANGE: {self.closest_obstacle:.2f}m",
-                (150, 440),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.46,
-                (0, 230, 118),
-                1,
-                cv2.LINE_AA,
-            )
-            cv2.putText(
-                img,
-                f"TIME: {time.strftime('%H:%M:%S')}.{int((t % 1) * 100):02d}",
-                (20, 465),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.40,
-                (148, 163, 184),
-                1,
-                cv2.LINE_AA,
-            )
-            _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 75])
+            cv2.putText(img, f"LOCAL TIME: {time.strftime('%H:%M:%S')}", (40, 452),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.40, (100, 116, 139), 1, cv2.LINE_AA)
+
+            _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
             return jpeg.tobytes()
 
     def update_map(self, msg: OccupancyGrid):
@@ -518,7 +519,7 @@ class TrishulDashboardServerNode(Node):
         step = max(1, len(ranges) // 60)
         for i in range(0, len(ranges), step):
             r = ranges[i]
-            if msg.range_min < r < 12.0 and math.isfinite(r):
+            if max(0.20, msg.range_min) < r < 12.0 and math.isfinite(r):
                 angle = msg.angle_min + i * msg.angle_increment
                 rx = r * math.cos(angle)
                 ry = r * math.sin(angle)
