@@ -879,8 +879,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = parseFloat(e.target.value);
             state.speedLimit = val;
             if (elSpeedVal) elSpeedVal.textContent = val.toFixed(2);
+        });
     }
-});
 
     const btnQuickStep = document.getElementById('btn-quick-step');
     if (btnQuickStep) {
