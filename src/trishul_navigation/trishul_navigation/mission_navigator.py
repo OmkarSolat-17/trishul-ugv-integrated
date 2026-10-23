@@ -35,6 +35,15 @@ def main(args=None):
 
     navigator.get_logger().info('Trishul Mission Navigator initialized.')
 
+    # Declare command parameters (default: cross-arena destination x=1.80, y=-0.50)
+    navigator.declare_parameter('target_x', 1.80)
+    navigator.declare_parameter('target_y', -0.50)
+    navigator.declare_parameter('target_yaw', 0.0)
+
+    target_x = float(navigator.get_parameter('target_x').value)
+    target_y = float(navigator.get_parameter('target_y').value)
+    target_yaw = float(navigator.get_parameter('target_yaw').value)
+
     # 1. Align initial position with Gazebo spawn point (-2.00, -0.50, yaw=0.0)
     init_pose = create_pose(navigator, -2.00, -0.50, yaw_deg=0.0)
     navigator.get_logger().info('Setting initial pose to match Gazebo: (-2.00, -0.50)...')
@@ -45,16 +54,11 @@ def main(args=None):
 
     navigator.get_logger().info('Waiting for Nav2 stack to become active...')
     navigator.waitUntilNav2Active()
-    navigator.get_logger().info('Nav2 is active! Beginning cross-arena traversal.')
-
-    # Destination: Opposite end of the map (Far East side: x = +1.80, y = -0.50)
-    target_x = 1.80
-    target_y = -0.50
-    target_yaw = 0.0
+    navigator.get_logger().info('Nav2 is active! Beginning navigation.')
 
     goal_pose = create_pose(navigator, target_x, target_y, target_yaw)
     navigator.get_logger().info(
-        f'Target destination: Opposite end of map at ({target_x:.2f}, {target_y:.2f})'
+        f'Target destination: ({target_x:.2f}, {target_y:.2f}) [yaw: {target_yaw:.1f} deg]'
     )
 
     navigator.goToPose(goal_pose)
@@ -77,7 +81,7 @@ def main(args=None):
     result = navigator.getResult()
     if result == TaskResult.SUCCEEDED:
         navigator.get_logger().info(
-            'SUCCESS! Robot successfully reached the opposite end of the map!'
+            f'SUCCESS! Robot successfully reached target: ({target_x:.2f}, {target_y:.2f})!'
         )
     elif result == TaskResult.CANCELED:
         navigator.get_logger().warning('Mission was canceled.')
