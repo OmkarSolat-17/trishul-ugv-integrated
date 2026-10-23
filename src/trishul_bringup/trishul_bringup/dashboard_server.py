@@ -68,7 +68,7 @@ class SharedDashboardState:
             # Overlay status banner
             cv2.putText(
                 bgr_img,
-                f"TRISHUL PRIMARY FEED [/ugv/combined/image] | {time.strftime('%H:%M:%S')}",
+                f"TRISHUL 3D DEPTH STREAM [/ugv/combined/image] | {time.strftime('%H:%M:%S')}",
                 (14, h - 14),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.45,
