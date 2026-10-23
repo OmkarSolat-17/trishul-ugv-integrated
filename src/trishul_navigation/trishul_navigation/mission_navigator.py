@@ -51,13 +51,13 @@ def main(args=None):
 
     if amcl_active:
         init_pose = create_pose(navigator, -2.00, -0.50, yaw_deg=0.0)
-        navigator.get_logger().info('AMCL localization detected. Setting initial pose (-2.00, -0.50)...')
+        navigator.get_logger().info('AMCL detected. Setting initial pose (-2.00, -0.50)...')
         navigator.setInitialPose(init_pose)
         time.sleep(1.0)
         navigator.get_logger().info('Waiting for Nav2 stack (with AMCL) to become active...')
         navigator.waitUntilNav2Active(localizer='amcl')
     else:
-        navigator.get_logger().info('SLAM Toolbox / live mapping mode detected. Bypassing AMCL check...')
+        navigator.get_logger().info('SLAM Toolbox mode detected. Bypassing AMCL check...')
         navigator.get_logger().info('Waiting for Nav2 stack to become active...')
         navigator.waitUntilNav2Active(localizer='bt_navigator')
 
