@@ -313,7 +313,7 @@ class TrishulDashboardServerNode(Node):
         super().__init__('trishul_dashboard_server')
 
         # Parameters
-        self.declare_parameter('port', 8080)
+        self.declare_parameter('port', 8090)
         self.declare_parameter('web_root', '')
         self.port = self.get_parameter('port').value
 
@@ -397,7 +397,7 @@ class TrishulDashboardServerNode(Node):
         DashboardHTTPRequestHandler.node_ref = self
 
         self.server = ThreadingHTTPServer(
-            ('127.0.0.1', self.port), DashboardHTTPRequestHandler
+            ('0.0.0.0', self.port), DashboardHTTPRequestHandler
         )
         self.server_thread = threading.Thread(
             target=self.server.serve_forever, daemon=True

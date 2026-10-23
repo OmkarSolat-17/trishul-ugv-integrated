@@ -48,7 +48,7 @@ def generate_launch_description():
                               description='Whether to start the YOLO perception node'),
         DeclareLaunchArgument('launch_dashboard', default_value='true',
                               description='Whether to start Trishul Mission Control Web Dashboard'),
-        DeclareLaunchArgument('dashboard_port', default_value='8080',
+        DeclareLaunchArgument('dashboard_port', default_value='8090',
                               description='Port for Mission Control Web Dashboard'),
         DeclareLaunchArgument('slam', default_value='False',
                               description='Whether to enable SLAM mapping'),
