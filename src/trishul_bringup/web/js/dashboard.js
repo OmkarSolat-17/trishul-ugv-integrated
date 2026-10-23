@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mapImageObj: null,
         mapImageLoaded: false,
         plannedPath: [],
-        currentGoal: { x: 1.8, y: -0.5 },
+        currentGoal: null, // Dynamic, set on click or mission
         speedLimit: 0.25,
         estopLatched: false,
         navState: 'IDLE',
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         connected: false,
         zoomScale: 45,
         viewMode: 'fixed', // 'fixed' (static arena, robot moves) or 'follow' (centered on robot)
-        arenaCenter: { x: 0.0, y: 0.0 },
+        arenaCenter: { x: -0.15, y: 0.0 },
         trail: [], // Pixels per meter
         activeFeed: 'combined',
         lastMapVersion: -1,
@@ -56,13 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const elChipsContainer = document.getElementById('detection-chips-container');
     const elTerminal = document.getElementById('terminal-feed');
     const elSpeedSlider = document.getElementById('speed-slider');
-    const elSpeedVal = document.getElementById('speed-limit-val');
+    const elSpeedVal = document.getElementById('val-speed-limit');
     const elVideoFeed = document.getElementById('live-video-feed');
     const elFeedStatus = document.getElementById('val-feed-status');
     const elFps = document.getElementById('val-fps');
 
     const canvas = document.getElementById('radar-canvas');
     const ctx = canvas.getContext('2d');
+    let hoverWorldCoord = null;
 
     // Auto-resize canvas for sharp rendering
     function resizeCanvas() {
@@ -597,6 +598,25 @@ document.addEventListener('DOMContentLoaded', () => {
         logEvent('MAP', `Zoom: ${state.zoomScale.toFixed(0)} px/m`);
     }, { passive: false });
 
+    // ---------------- Interactive Mouse Reticle & Coordinates ----------------
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const scale = state.zoomScale;
+        const ox = state.viewMode === 'fixed' ? state.arenaCenter.x : state.pose.x;
+        const oy = state.viewMode === 'fixed' ? state.arenaCenter.y : state.pose.y;
+        const wx = ox + (clickX - cx) / scale;
+        const wy = oy - (clickY - cy) / scale;
+        hoverWorldCoord = { sx: clickX, sy: clickY, wx: wx, wy: wy };
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        hoverWorldCoord = null;
+    });
+
     // ---------------- Click-to-Goal (Accurate Nav2 Goal Dispatch) ----------------
     canvas.addEventListener('click', (e) => {
         if (state.estopLatched) {
@@ -605,38 +625,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const rect = canvas.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top;
+        const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
 
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
         const scale = state.zoomScale;
 
-        // Invert worldToScreen:
-        // sx = cx + (wx - pose.x) * scale => wx = pose.x + (sx - cx) / scale
-        // sy = cy - (wy - pose.y) * scale => wy = pose.y - (sy - cy) / scale
         const ox = state.viewMode === 'fixed' ? state.arenaCenter.x : state.pose.x;
         const oy = state.viewMode === 'fixed' ? state.arenaCenter.y : state.pose.y;
-        let goalX = ox + (clickX - cx) / scale;
-        let goalY = oy - (clickY - cy) / scale;
-
-        // Strictly clamp goal inside valid arena boundaries
-        if (state.mapMeta && state.mapMeta.width > 0) {
-            const meta = state.mapMeta;
-            const minX = meta.origin_x + 0.4;
-            const maxX = meta.origin_x + meta.width * meta.resolution - 0.4;
-            const minY = meta.origin_y + 0.4;
-            const maxY = meta.origin_y + meta.height * meta.resolution - 0.4;
-
-            const origX = goalX;
-            const origY = goalY;
-            goalX = Math.max(minX, Math.min(maxX, goalX));
-            goalY = Math.max(minY, Math.min(maxY, goalY));
-
-            if (goalX !== origX || goalY !== origY) {
-                logEvent('MAP', `Click auto-snapped to arena boundary: (${goalX.toFixed(2)}, ${goalY.toFixed(2)})`);
-            }
-        }
+        const goalX = ox + (clickX - cx) / scale;
+        const goalY = oy - (clickY - cy) / scale;
 
         // Calculate direct heading angle to target
         const dx = goalX - state.pose.x;
@@ -647,8 +646,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function dispatchGoal(x, y, yaw = 0.0) {
-        state.currentGoal = { x, y };
-        logEvent('NAV2', `Dispatching NavigateToPose Action: (${x.toFixed(2)}, ${y.toFixed(2)})`);
+        // Clamp safely within the active arena table bounds
+        const safeMinX = -2.60;
+        const safeMaxX = 2.40;
+        const safeMinY = -2.20;
+        const safeMaxY = 2.20;
+        const clampedX = Math.max(safeMinX, Math.min(safeMaxX, x));
+        const clampedY = Math.max(safeMinY, Math.min(safeMaxY, y));
+
+        state.currentGoal = { x: clampedX, y: clampedY };
+        logEvent('NAV2', `Dispatching Target Goal: (${clampedX.toFixed(2)}, ${clampedY.toFixed(2)})`);
+        x = clampedX;
+        y = clampedY;
 
         try {
             const resp = await fetch('/api/goal', {
@@ -796,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elSpeedSlider.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             state.speedLimit = val;
-            if (elSpeedVal) elSpeedVal.textContent = `${val.toFixed(2)} m/s`;
+            if (elSpeedVal) elSpeedVal.textContent = val.toFixed(2);
         });
     }
 });
