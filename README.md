@@ -11,6 +11,22 @@
 
 ---
 
+## ⚡ Quickstart: Launch Complete System & Dashboard
+
+Run the unified, single-command launcher (kills any background zombie processes and boots all nodes):
+```bash
+cd /home/papa_ji/project/Trishul/merg-trishul
+./run_demo.sh
+```
+
+### Accessing the BVR Mission Control Web Dashboard:
+* Open your browser at: **`http://127.0.0.1:8090`**
+* **Tactical 2D SLAM Radar:** Click any point inside the arena to dispatch an autonomous Nav2 waypoint.
+* **Teleoperation:** Control the robot with on-screen D-Pad or keyboard **`[W/A/S/D]`**; adjust the dynamic speed slider.
+* **Safety:** Use the red **EMERGENCY STOP** button or **`[Spacebar]`** to instantly clamp velocities to zero.
+
+---
+
 ## 🚀 Active Subsystem Status: Navigation & Guidance Operational
 
 > **BRANCH: `trishul-navigation`**  
@@ -197,14 +213,14 @@ trishul-ugv/                        ← repository root
 
 ### ROS 2 Package Implementation Status
 
-| Package | Status | Owner | Documentation |
-| :--- | :--- | :--- | :--- |
-| **`trishul_navigation`** | **Operational & Verified** | Navigation Lead | [trishul_navigation/README.md](src/trishul_navigation/README.md) |
-| `trishul_description` | Pending Implementation | Simulation Lead | [src/trishul_description/README.md](src/trishul_description/README.md) |
-| `trishul_simulation` | Pending Implementation | Simulation Lead | [src/trishul_simulation/README.md](src/trishul_simulation/README.md) |
-| `trishul_perception` | Pending Implementation | Vision / AI Lead | [src/trishul_perception/README.md](src/trishul_perception/README.md) |
-| `trishul_localization` | Pending Implementation | Localization Lead | [src/trishul_localization/README.md](src/trishul_localization/README.md) |
-| `trishul_bringup` | Pending Implementation | Integration Lead | [src/trishul_bringup/README.md](src/trishul_bringup/README.md) |
+| Package | Status | Core Deliverables & Technologies | Documentation |
+| :--- | :---: | :--- | :--- |
+| **`trishul_bringup`** | **Operational & Verified** | Master launch orchestrator (`demo.launch.py`), BVR Mission Control Dashboard server (HTTP REST, MJPEG stream, port 8090), and `./run_demo.sh` safe launcher. | [docs/SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md) |
+| **`trishul_navigation`** | **Operational & Verified** | Nav2 stack integration (Smac/NavFn planners, DWB trajectory controller, dynamic costmaps) with active LiDAR safety brake override. | [src/trishul_navigation/README.md](src/trishul_navigation/README.md) |
+| **`trishul_description`** | **Operational & Verified** | Complete UGV kinematic model (`trishul_ugv.sdf.xacro`), 360° 2D LiDAR scanner, forward perception camera, and diff-drive physics parameters. | [docs/SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md) |
+| **`trishul_perception`** | **Operational & Verified** | 3D depth perception thermal heatmap (`cv2.COLORMAP_TURBO`), live FPS calculation, and YOLOv8 visual detection bridge. | [docs/SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md) |
+| **`trishul_localization`** | **Operational & Verified** | Millimeter-accurate TF2 transform synchronization (`map -> base_footprint`), AMCL particle filter localization, and dynamic SLAM map base64 encoding. | [docs/SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md) |
+| **`trishul_simulation`** | **Operational & Verified** | Gazebo Harmonic physics simulation with ROS-GZ parameter bridge for sensor topics and clock synchronization. | [docs/ENVIRONMENT_SETUP_GUIDE.md](docs/ENVIRONMENT_SETUP_GUIDE.md) |
 
 ---
 
