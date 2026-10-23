@@ -192,21 +192,34 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elAngularVel) elAngularVel.textContent = `${state.vel.angular.toFixed(2)}`;
 
             // Dynamic Camera HUD Status & Live Stream FPS
-            if (elFps) {
-                if (state.activeFeed !== 'combined') {
-                    elFps.textContent = 'OFFLINE';
-                    elFps.style.color = '#ff5252';
-                    if (elFeedStatus) elFeedStatus.textContent = 'SENSOR STANDBY';
-                } else {
-                    const fpsVal = data.fps && data.fps > 0 ? data.fps.toFixed(1) : (24.0 + (Date.now() % 5) * 0.4).toFixed(1);
+            if (elFps && elFeedStatus) {
+                const fpsVal = data.fps && data.fps > 0 ? data.fps.toFixed(1) : (24.0 + (Date.now() % 5) * 0.4).toFixed(1);
+
+                if (state.activeFeed === 'combined') {
                     elFps.textContent = `${fpsVal} FPS`;
                     elFps.style.color = '#00f2fe';
-                    if (elFeedStatus) {
-                        if (data.detections && data.detections.length > 0) {
-                            elFeedStatus.textContent = `YOLO DETECTIONS: ${data.detections.length}`;
-                        } else {
-                            elFeedStatus.textContent = '3D DEPTH PERCEPTION';
-                        }
+                    if (data.detections && data.detections.length > 0) {
+                        elFeedStatus.textContent = `YOLO TARGETS: ${data.detections.length}`;
+                    } else {
+                        elFeedStatus.textContent = '3D DEPTH PERCEPTION';
+                    }
+                } else if (state.activeFeed === 'stereo') {
+                    elFeedStatus.textContent = 'STEREO OPTICAL';
+                    if (data.has_optical !== false) {
+                        elFps.textContent = `${fpsVal} FPS`;
+                        elFps.style.color = '#00f2fe';
+                    } else {
+                        elFps.textContent = 'STANDBY';
+                        elFps.style.color = '#ffab00';
+                    }
+                } else if (state.activeFeed === 'rear') {
+                    elFeedStatus.textContent = 'REAR RECON CAM';
+                    if (data.has_rear !== false) {
+                        elFps.textContent = `${fpsVal} FPS`;
+                        elFps.style.color = '#00f2fe';
+                    } else {
+                        elFps.textContent = 'STANDBY';
+                        elFps.style.color = '#ffab00';
                     }
                 }
             }
@@ -713,12 +726,87 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+        // ---------------- Picture-in-Picture (PiP) Dual Vision Handler ----------------
+    const btnTogglePip = document.getElementById('btn-toggle-pip');
+    const elPipViewport = document.getElementById('pip-viewport');
+    const elPipVideo = document.getElementById('pip-video-feed');
+    const elPipLabel = document.getElementById('pip-label');
+    const btnSwapPip = document.getElementById('btn-swap-pip');
+
+    let pipActive = false;
+    let pipFeed = 'stereo';
+
+    function updatePipView() {
+        if (!elPipViewport || !elPipVideo) return;
+        if (pipActive) {
+            elPipViewport.style.display = 'block';
+            if (btnTogglePip) btnTogglePip.classList.add('active');
+            // If primary is stereo, pip shows depth; if primary is depth, pip shows stereo; if primary is rear, pip shows depth
+            if (state.activeFeed === 'stereo') {
+                pipFeed = 'combined';
+                if (elPipLabel) elPipLabel.textContent = '3D DEPTH HEATMAP [PiP]';
+            } else if (state.activeFeed === 'rear') {
+                pipFeed = 'combined';
+                if (elPipLabel) elPipLabel.textContent = '3D DEPTH HEATMAP [PiP]';
+            } else {
+                pipFeed = 'stereo';
+                if (elPipLabel) elPipLabel.textContent = 'STEREO OPTICAL [PiP]';
+            }
+            elPipVideo.src = `/stream/video?feed=${pipFeed}&t=${Date.now()}`;
+        } else {
+            elPipViewport.style.display = 'none';
+            if (btnTogglePip) btnTogglePip.classList.remove('active');
+        }
+    }
+
+    if (btnTogglePip) {
+        btnTogglePip.addEventListener('click', () => {
+            pipActive = !pipActive;
+            updatePipView();
+            logEvent('VISION', pipActive ? 'Picture-in-Picture Dual Vision enabled.' : 'Dual Vision disabled.');
+        });
+    }
+
+    function swapPipStreams() {
+        if (!pipActive) return;
+        const temp = state.activeFeed;
+        state.activeFeed = pipFeed;
+        pipFeed = temp;
+        if (elVideoFeed) {
+            elVideoFeed.src = `/stream/video?feed=${state.activeFeed}&t=${Date.now()}`;
+        }
+        updatePipView();
+        // Update main active selector button
+        camButtons.forEach(b => {
+            if (b.getAttribute('data-feed') === state.activeFeed) {
+                b.classList.add('active');
+            } else if (b.id !== 'btn-toggle-pip') {
+                b.classList.remove('active');
+            }
+        });
+        logEvent('VISION', `Swapped Primary Feed to [${state.activeFeed.toUpperCase()}]`);
+    }
+
+    if (btnSwapPip) {
+        btnSwapPip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            swapPipStreams();
+        });
+    }
+
+    if (elPipViewport) {
+        elPipViewport.addEventListener('click', () => {
+            swapPipStreams();
+        });
+    }
+
     // ---------------- Authoritative E-STOP Toggle ----------------
     if (elEstopBtn) {
         elEstopBtn.addEventListener('click', async () => {
             if (!state.estopLatched) {
                 // Engage E-STOP
                 logEvent('SAFETY', '>>> AUTHORITATIVE EMERGENCY STOP ENGAGED <<<', 'danger');
+                state.currentGoal = null;
                 try {
                     await fetch('/api/estop', { method: 'POST' });
                     state.estopLatched = true;
@@ -729,7 +817,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 // Reset E-STOP
-                logEvent('SYSTEM', 'E-STOP Latch cleared. Motor power restored.', 'active');
+                logEvent('SYSTEM', 'E-STOP Latch cleared. Motor power restored. Click canvas to navigate.', 'active');
+                state.currentGoal = null;
                 try {
                     await fetch('/api/reset_estop', { method: 'POST' });
                     state.estopLatched = false;
@@ -790,7 +879,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = parseFloat(e.target.value);
             state.speedLimit = val;
             if (elSpeedVal) elSpeedVal.textContent = val.toFixed(2);
-        });
     }
 });
 
@@ -872,3 +960,4 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+});

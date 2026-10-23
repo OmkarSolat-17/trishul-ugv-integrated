@@ -41,6 +41,7 @@ class SharedDashboardState:
         self.latest_jpeg = None
         self.raw_jpeg = None
         self.optical_jpeg = None
+        self.rear_jpeg = None
         self.pose = {'x': -2.0, 'y': -0.5, 'yaw': 0.0}
         self.vel = {'linear': 0.0, 'angular': 0.0}
         self.closest_obstacle = 20.0
@@ -122,6 +123,23 @@ class SharedDashboardState:
             if ret:
                 self.optical_jpeg = jpeg.tobytes()
 
+    def update_rear_frame(self, bgr_img):
+        with self.lock:
+            h, w = bgr_img.shape[:2]
+            cv2.putText(
+                bgr_img,
+                f"TRISHUL REAR RECON [/camera/rear/image_raw] | {time.strftime('%H:%M:%S')}",
+                (14, h - 14),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (0, 242, 254),
+                1,
+                cv2.LINE_AA,
+            )
+            ret, jpeg = cv2.imencode('.jpg', bgr_img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if ret:
+                self.rear_jpeg = jpeg.tobytes()
+
     def get_jpeg(self, feed='combined'):
         with self.lock:
             # Handle forward stereo / optical camera feed
@@ -152,6 +170,8 @@ class SharedDashboardState:
 
             # Handle rear reconnaissance camera feed
             if feed == 'rear':
+                if self.rear_jpeg is not None:
+                    return self.rear_jpeg
                 img = np.zeros((480, 640, 3), dtype=np.uint8)
                 img[:] = (12, 16, 24)
                 for x in range(0, 640, 40): cv2.line(img, (x, 0), (x, 480), (20, 28, 42), 1)
@@ -336,6 +356,9 @@ class SharedDashboardState:
                 'distance_remaining': round(self.distance_remaining, 2),
                 'eta_seconds': round(self.eta_seconds, 1),
                 'fps': self.fps,
+                'has_optical': self.optical_jpeg is not None,
+                'has_rear': self.rear_jpeg is not None,
+                'has_depth': self.latest_jpeg is not None,
             }
 
 
@@ -559,6 +582,9 @@ class TrishulDashboardServerNode(Node):
         self.image_sub = self.create_subscription(
             Image, '/ugv/combined/image', self.image_callback, sensor_qos, callback_group=self.cb_group
         )
+        self.rear_image_sub = self.create_subscription(
+            Image, '/camera/rear/image_raw', self.rear_image_callback, sensor_qos, callback_group=self.cb_group
+        )
         self.color_image_sub = self.create_subscription(
             Image, '/camera/color/image_raw', self.color_image_callback, sensor_qos, callback_group=self.cb_group
         )
@@ -613,6 +639,16 @@ class TrishulDashboardServerNode(Node):
 
     def image_callback(self, msg: Image):
         self._decode_image(msg)
+
+    def rear_image_callback(self, msg: Image):
+        try:
+            if msg.encoding in ('bgr8', 'rgb8'):
+                img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
+                if msg.encoding == 'rgb8':
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                self.shared_state.update_rear_frame(img)
+        except Exception:
+            pass
 
     def color_image_callback(self, msg: Image):
         try:

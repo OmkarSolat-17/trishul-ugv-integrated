@@ -92,6 +92,8 @@ def generate_launch_description():
                 '/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
                 '/camera/color/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
                 '/camera/color/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+                '/camera/rear/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
+                '/camera/rear/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
             ],
             parameters=[{'use_sim_time': use_sim_time}],
             output='screen',

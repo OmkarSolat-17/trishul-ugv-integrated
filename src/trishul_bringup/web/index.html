@@ -61,11 +61,21 @@
                     <button class="cam-btn active" data-feed="combined" id="btn-cam-depth" title="Switch to 3D Depth Perception Heatmap">3D DEPTH HEATMAP</button>
                     <button class="cam-btn" data-feed="stereo" id="btn-cam-stereo" title="Switch to Stereo Optical Camera">STEREO CAM</button>
                     <button class="cam-btn" data-feed="rear" id="btn-cam-rear" title="Switch to Rear Tactical Reconnaissance Camera">REAR RECON CAM</button>
+                    <button class="cam-btn btn-pip" id="btn-toggle-pip" title="Toggle Picture-in-Picture Dual Vision">✨ DUAL PiP</button>
                 </div>
             </div>
 
-            <div class="video-viewport">
+            <div class="video-viewport" id="video-viewport">
                 <img src="/stream/video" id="live-video-feed" alt="Live UGV Camera Stream">
+                
+                <!-- Picture-in-Picture Secondary Stream Inset -->
+                <div class="pip-viewport" id="pip-viewport" style="display: none;">
+                    <img src="/stream/video?feed=stereo" id="pip-video-feed" alt="Secondary Camera Stream">
+                    <div class="pip-hud">
+                        <span class="pip-label" id="pip-label">STEREO OPTICAL [PiP]</span>
+                        <button class="pip-swap-btn" id="btn-swap-pip" title="Swap Main and PiP View">⮂ SWAP</button>
+                    </div>
+                </div>
                 
                 <!-- Tactical Crosshair & Corner Brackets -->
                 <div class="hud-overlay">

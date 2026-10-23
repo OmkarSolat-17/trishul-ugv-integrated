@@ -676,3 +676,82 @@ body.cyber-tactical {
     -webkit-user-select: text !important;
     cursor: text;
 }
+
+/* ---------------- Picture-in-Picture (PiP) Dual Vision ---------------- */
+.btn-pip {
+    border-color: rgba(255, 171, 0, 0.4);
+    color: var(--neon-amber, #ffab00);
+}
+.btn-pip.active {
+    background: rgba(255, 171, 0, 0.2) !important;
+    border-color: #ffab00 !important;
+    color: #ffab00 !important;
+    box-shadow: 0 0 12px rgba(255, 171, 0, 0.3) !important;
+}
+
+.pip-viewport {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 220px;
+    height: 165px;
+    border: 2px solid var(--neon-cyan);
+    border-radius: 6px;
+    background: #000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 242, 254, 0.3);
+    overflow: hidden;
+    z-index: 15;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.pip-viewport:hover {
+    width: 260px;
+    height: 195px;
+    border-color: #00f2fe;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.9), 0 0 18px rgba(0, 242, 254, 0.5);
+}
+
+.pip-viewport img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.pip-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 3px 6px;
+    background: rgba(10, 16, 26, 0.85);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 242, 254, 0.2);
+}
+
+.pip-label {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--neon-cyan);
+    letter-spacing: 0.5px;
+}
+
+.pip-swap-btn {
+    background: rgba(0, 242, 254, 0.2);
+    border: 1px solid var(--neon-cyan);
+    color: #fff;
+    font-size: 0.55rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pip-swap-btn:hover {
+    background: var(--neon-cyan);
+    color: #000;
+}
