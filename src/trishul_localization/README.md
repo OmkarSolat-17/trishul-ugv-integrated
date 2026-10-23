@@ -1,19 +1,10 @@
-# trishul_localization
+# trishul_localization (Member 3)
 
-> **Owner**: Localization Lead  
-> **Status**: ⚠️ Placeholder (Package Not Yet Initialized)
+ROS 2 Jazzy package for depth-to-scan 2D SLAM mapping and localization.
 
-## Scope & Purpose
-This package will house spatial mapping and state estimation:
-- Odometry fusion configurations (e.g., Extended Kalman Filter via `robot_localization`).
-- Visual SLAM / Visual Odometry nodes or configurations.
-- Map generation and saving configurations.
-- TF frame broadcasting for `map -> odom -> base_link`.
+## Documentation
+- Read INTEGRATION_GUIDE.md for team integration instructions.
+- Read LOCALIZATION_NOTES.md for technical design notes.
 
-## Future Package Initialization
-When ready to implement, initialize this package using `ros2 pkg create`:
-```bash
-cd <workspace_root>
-ros2 pkg create --build-type ament_cmake trishul_localization --dependencies rclcpp nav_msgs geometry_msgs tf2 tf2_ros
-```
-*Note: Do not create manual empty `package.xml` or `CMakeLists.txt` files before running the standard tool.*
+## Execution
+  ros2 launch trishul_localization slam_launch.py use_sim_time:=true
