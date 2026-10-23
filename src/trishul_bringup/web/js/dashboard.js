@@ -30,7 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
         etaSeconds: 0.0,
         keysPressed: {},
         connected: false,
-        zoomScale: 38, // Pixels per meter
+        zoomScale: 22,
+        viewMode: 'fixed', // 'fixed' (static arena, robot moves) or 'follow' (centered on robot)
+        arenaCenter: { x: 0.0, y: 0.0 },
+        trail: [], // Pixels per meter
         activeFeed: 'combined',
         lastMapVersion: -1,
     };
@@ -132,7 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Pose & Velocity
-            if (data.pose) state.pose = data.pose;
+            if (data.pose) {
+                state.pose = data.pose;
+                // Add to breadcrumb trail
+                if (state.trail.length === 0 || Math.hypot(state.pose.x - state.trail[state.trail.length-1][0], state.pose.y - state.trail[state.trail.length-1][1]) > 0.05) {
+                    state.trail.push([state.pose.x, state.pose.y]);
+                    if (state.trail.length > 200) state.trail.shift();
+                }
+            }
             if (data.vel) state.vel = data.vel;
             state.closestObstacle = data.closest_obstacle;
             state.battery = data.battery;
@@ -260,9 +270,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // World (wx, wy) in meters -> Canvas (sx, sy) in pixels
         // Follow-Robot Mode: center (cx, cy) is robot position (state.pose.x, state.pose.y)
         // Standard Top-Down Map: +X is East (right), +Y is North (up)
+        // World coordinates -> Screen canvas pixels
+        // In Fixed Mode: arena center (0, 0) is at screen center (cx, cy)
+        // In Follow Mode: robot pose is at screen center (cx, cy)
         function worldToScreen(wx, wy) {
-            const sx = cx + (wx - state.pose.x) * scale;
-            const sy = cy - (wy - state.pose.y) * scale;
+            const ox = state.viewMode === 'fixed' ? state.arenaCenter.x : state.pose.x;
+            const oy = state.viewMode === 'fixed' ? state.arenaCenter.y : state.pose.y;
+            const sx = cx + (wx - ox) * scale;
+            const sy = cy - (wy - oy) * scale;
             return { x: sx, y: sy };
         }
 
@@ -398,9 +413,26 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillText('TARGET', gp.x + 8, gp.y + 3);
         }
 
-        // 6. Draw Robot Chassis at Center (cx, cy)
+        // Breadcrumb Trail (Past Robot Path)
+        if (state.trail && state.trail.length > 1) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            state.trail.forEach((pt, i) => {
+                const sp = worldToScreen(pt[0], pt[1]);
+                if (i === 0) ctx.moveTo(sp.x, sp.y);
+                else ctx.lineTo(sp.x, sp.y);
+            });
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 6. Draw Robot Chassis at its actual world position!
+        const rPos = worldToScreen(state.pose.x, state.pose.y);
         ctx.save();
-        ctx.translate(cx, cy);
+        ctx.translate(rPos.x, rPos.y);
         // Canvas rotation: standard ROS yaw angle (0 = East/right, pi/2 = North/up)
         // Canvas Y is downwards, so counter-clockwise rotation is negative
         ctx.rotate(-state.pose.yaw);
@@ -491,8 +523,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Invert worldToScreen:
         // sx = cx + (wx - pose.x) * scale => wx = pose.x + (sx - cx) / scale
         // sy = cy - (wy - pose.y) * scale => wy = pose.y - (sy - cy) / scale
-        let goalX = state.pose.x + (clickX - cx) / scale;
-        let goalY = state.pose.y - (clickY - cy) / scale;
+        const ox = state.viewMode === 'fixed' ? state.arenaCenter.x : state.pose.x;
+        const oy = state.viewMode === 'fixed' ? state.arenaCenter.y : state.pose.y;
+        let goalX = ox + (clickX - cx) / scale;
+        let goalY = oy - (clickY - cy) / scale;
 
         // Strictly clamp goal inside valid arena boundaries
         if (state.mapMeta && state.mapMeta.width > 0) {
@@ -685,3 +719,71 @@ document.addEventListener('DOMContentLoaded', () => {
             dispatchGoal(targetX, targetY, state.pose.yaw);
         });
     }
+
+    // ---------------- View Mode Toggle Handler ----------------
+    const btnToggleView = document.getElementById('btn-toggle-view');
+    if (btnToggleView) {
+        btnToggleView.addEventListener('click', () => {
+            if (state.viewMode === 'fixed') {
+                state.viewMode = 'follow';
+                btnToggleView.textContent = '🎯 VIEW: FOLLOW ROBOT';
+                logEvent('MAP', 'Switched to Follow Robot View (camera tracks UGV)');
+            } else {
+                state.viewMode = 'fixed';
+                btnToggleView.textContent = '🗺️ VIEW: FIXED ARENA';
+                logEvent('MAP', 'Switched to Fixed Arena View (stationary map, UGV moves across screen)');
+            }
+        });
+    }
+
+    // ---------------- On-Screen Teleoperation D-Pad Click/Hold Handlers ----------------
+    let teleopTimer = null;
+    function startDriving(lin, ang) {
+        if (state.estopLatched) return;
+        sendTeleop(lin, ang);
+        if (teleopTimer) clearInterval(teleopTimer);
+        teleopTimer = setInterval(() => sendTeleop(lin, ang), 100);
+    }
+    function stopDriving() {
+        if (teleopTimer) {
+            clearInterval(teleopTimer);
+            teleopTimer = null;
+        }
+        sendTeleop(0.0, 0.0);
+    }
+
+    const dpadButtons = [
+        { id: 'btn-drive-fwd', lin: 1.0, ang: 0.0 },
+        { id: 'btn-drive-rev', lin: -1.0, ang: 0.0 },
+        { id: 'btn-turn-left', lin: 0.0, ang: 1.2 },
+        { id: 'btn-turn-right', lin: 0.0, ang: -1.2 },
+        { id: 'btn-brake', lin: 0.0, ang: 0.0 },
+    ];
+
+    dpadButtons.forEach(b => {
+        const el = document.getElementById(b.id);
+        if (el) {
+            el.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                el.classList.add('active');
+                startDriving(b.lin * state.speedLimit, b.ang);
+            });
+            el.addEventListener('mouseup', () => {
+                el.classList.remove('active');
+                stopDriving();
+            });
+            el.addEventListener('mouseleave', () => {
+                el.classList.remove('active');
+                stopDriving();
+            });
+            el.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                el.classList.add('active');
+                startDriving(b.lin * state.speedLimit, b.ang);
+            });
+            el.addEventListener('touchend', () => {
+                el.classList.remove('active');
+                stopDriving();
+            });
+        }
+    });

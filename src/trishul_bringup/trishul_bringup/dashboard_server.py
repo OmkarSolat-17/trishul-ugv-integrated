@@ -54,6 +54,7 @@ class SharedDashboardState:
         }
         self.map_jpeg_base64 = None
         self.map_version = 0
+        self._load_fallback_map()
         self.estop_latched = False
         self.nav_state = 'IDLE'  # IDLE, NAVIGATING, SUCCEEDED, CANCELLED, FAILED
         self.distance_remaining = 0.0
@@ -165,6 +166,34 @@ class SharedDashboardState:
 
             _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
             return jpeg.tobytes()
+
+    def _load_fallback_map(self):
+        """Preload the tb3_sandbox arena map so the 2D map canvas displays immediately."""
+        pgm_path = '/opt/ros/jazzy/share/nav2_bringup/maps/tb3_sandbox.pgm'
+        if os.path.exists(pgm_path):
+            try:
+                pgm = cv2.imread(pgm_path, cv2.IMREAD_GRAYSCALE)
+                if pgm is not None:
+                    h, w = pgm.shape
+                    self.map_meta = {
+                        'resolution': 0.05,
+                        'width': w,
+                        'height': h,
+                        'origin_x': -10.0,
+                        'origin_y': -10.0,
+                    }
+                    map_rgba = np.zeros((h, w, 4), dtype=np.uint8)
+                    map_rgba[pgm > 240] = [36, 48, 68, 235]       # Free space
+                    map_rgba[pgm < 100] = [0, 242, 254, 255]     # Walls / Obstacles (Cyan)
+                    map_rgba[(pgm >= 100) & (pgm <= 240)] = [18, 26, 38, 160] # Unknown
+                    map_rgba = np.flipud(map_rgba)
+                    ret, buf = cv2.imencode('.png', map_rgba)
+                    if ret:
+                        import base64
+                        self.map_jpeg_base64 = base64.b64encode(buf).decode('utf-8')
+                        self.map_version = 1
+            except Exception as e:
+                pass
 
     def update_map(self, msg: OccupancyGrid):
         with self.lock:
@@ -286,6 +315,10 @@ class DashboardHTTPRequestHandler(SimpleHTTPRequestHandler):
                 pass
             return
 
+        elif self.path.startswith('/api/state'):
+            self._send_json(self.shared_state.get_telemetry_snapshot())
+            return
+
         super().do_GET()
 
     def do_POST(self):
@@ -317,6 +350,16 @@ class DashboardHTTPRequestHandler(SimpleHTTPRequestHandler):
             if self.node_ref:
                 self.node_ref.publish_teleop(lin, ang)
             self._send_json({'status': 'ok'})
+
+        # Cancel / Preempt Goal
+        elif self.path == '/api/cancel':
+            if self.node_ref and self.node_ref.active_goal_handle:
+                self.node_ref.active_goal_handle.cancel_goal_async()
+                self.node_ref.active_goal_handle = None
+                with self.shared_state.lock:
+                    self.shared_state.nav_state = 'CANCELLED'
+            self._send_json({'status': 'ok'})
+            return
 
         # 2. Nav2 Goal Dispatch
         elif self.path == '/api/goal':
@@ -577,7 +620,7 @@ class TrishulDashboardServerNode(Node):
         t = Twist()
         t.linear.x = float(linear)
         t.angular.z = float(angular)
-        # Publish to safety controller input for collision intervention
+        self.cmd_vel_pub.publish(t)
         self.safety_cmd_pub.publish(t)
 
     def dispatch_nav_goal(self, x, y, yaw=0.0):
