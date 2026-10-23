@@ -5,6 +5,8 @@ Trishul is a simulation-based prototype for **vision-based autonomous navigation
 The goal is to demonstrate a robot that can move from Point A to Point B, use camera-based perception to identify possible hazards, estimate its position, and avoid obstacles.
 
 > **Project status:** Planning and development guide. Features must only be marked complete after they are implemented and tested. The first version is simulation-only; it is not evidence of real-world robot performance.
+>
+> **Subsystem Status Note:** The autonomous navigation subsystem (`trishul_navigation`) is fully implemented, verified, and operational on branch `trishul-navigation`. See [src/trishul_navigation/README.md](../../src/trishul_navigation/README.md) and root [README.md](../../README.md).
 
 ## Start here
 
