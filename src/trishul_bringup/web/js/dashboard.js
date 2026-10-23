@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         etaSeconds: 0.0,
         keysPressed: {},
         connected: false,
-        zoomScale: 22,
+        zoomScale: 45,
         viewMode: 'fixed', // 'fixed' (static arena, robot moves) or 'follow' (centered on robot)
         arenaCenter: { x: 0.0, y: 0.0 },
         trail: [], // Pixels per meter
@@ -281,38 +281,64 @@ document.addEventListener('DOMContentLoaded', () => {
             return { x: sx, y: sy };
         }
 
-        // 1. Draw Real SLAM OccupancyGrid Map & Arena Boundaries
-        if (state.mapMeta && state.mapMeta.width > 0) {
+        // 1. Tactical Ceiling-View Arena Table Surface
+        // In tb3_sandbox, the active walled arena is -3.0m to +2.7m in X, and -2.6m to +2.6m in Y
+        const arenaMinX = -3.05;
+        const arenaMaxX = 2.75;
+        const arenaMinY = -2.65;
+        const arenaMaxY = 2.65;
+
+        const tableTL = worldToScreen(arenaMinX, arenaMaxY);
+        const tableBR = worldToScreen(arenaMaxX, arenaMinY);
+        const tableW = tableBR.x - tableTL.x;
+        const tableH = tableBR.y - tableTL.y;
+
+        // Draw Tactical Mission Table Floor
+        ctx.save();
+        ctx.fillStyle = '#111b2b';
+        ctx.fillRect(tableTL.x, tableTL.y, tableW, tableH);
+
+        // Render OccupancyGrid Map Tiles on top of floor
+        if (state.mapMeta && state.mapMeta.width > 0 && state.mapImageLoaded && state.mapImageObj) {
             const meta = state.mapMeta;
             const mapTopWorldX = meta.origin_x;
             const mapTopWorldY = meta.origin_y + meta.height * meta.resolution;
-
             const spTopLeft = worldToScreen(mapTopWorldX, mapTopWorldY);
             const mapScreenWidth = meta.width * meta.resolution * scale;
             const mapScreenHeight = meta.height * meta.resolution * scale;
 
-            // Render Map Tiles
-            if (state.mapImageLoaded && state.mapImageObj) {
-                ctx.save();
-                ctx.globalAlpha = 0.95;
-                ctx.imageSmoothingEnabled = false;
-                ctx.drawImage(state.mapImageObj, spTopLeft.x, spTopLeft.y, mapScreenWidth, mapScreenHeight);
-                ctx.restore();
-            }
-
-            // Render Tactical Arena Boundary Frame
-            ctx.save();
-            ctx.strokeStyle = 'rgba(0, 242, 254, 0.45)';
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([6, 6]);
-            ctx.strokeRect(spTopLeft.x, spTopLeft.y, mapScreenWidth, mapScreenHeight);
-
-            // Arena Tag
-            ctx.fillStyle = 'rgba(0, 242, 254, 0.6)';
-            ctx.font = '10px monospace';
-            ctx.fillText(`ARENA [${(meta.width * meta.resolution).toFixed(0)}m x ${(meta.height * meta.resolution).toFixed(0)}m]`, spTopLeft.x + 8, spTopLeft.y + 14);
-            ctx.restore();
+            ctx.globalAlpha = 0.95;
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(state.mapImageObj, spTopLeft.x, spTopLeft.y, mapScreenWidth, mapScreenHeight);
         }
+
+        // Draw Glowing Tactical Arena Perimeter Wall
+        ctx.strokeStyle = '#00f2fe';
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 6;
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(tableTL.x, tableTL.y, tableW, tableH);
+
+        // Corner Mission Brackets
+        const bLen = 14;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        // TL
+        ctx.moveTo(tableTL.x, tableTL.y + bLen); ctx.lineTo(tableTL.x, tableTL.y); ctx.lineTo(tableTL.x + bLen, tableTL.y);
+        // TR
+        ctx.moveTo(tableBR.x - bLen, tableTL.y); ctx.lineTo(tableBR.x, tableTL.y); ctx.lineTo(tableBR.x, tableTL.y + bLen);
+        // BL
+        ctx.moveTo(tableTL.x, tableBR.y - bLen); ctx.lineTo(tableTL.x, tableBR.y); ctx.lineTo(tableTL.x + bLen, tableBR.y);
+        // BR
+        ctx.moveTo(tableBR.x - bLen, tableBR.y); ctx.lineTo(tableBR.x, tableBR.y); ctx.lineTo(tableBR.x, tableBR.y - bLen);
+        ctx.stroke();
+
+        // Arena Table Header Tag
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#00f2fe';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('TOP-DOWN ARENA TABLE [5.8m x 5.3m]', tableTL.x + 8, tableTL.y - 6);
+        ctx.restore();
 
         // 2. Clean Tactical Top-Down Grid (Every 1.0 meter)
         ctx.save();
@@ -377,10 +403,15 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        // 4. Draw Planned Path (from Nav2)
+        // 4. Draw Nav2 Autonomous Planned Trajectory (Glowing Neon Green)
         if (state.plannedPath && state.plannedPath.length > 1) {
+            ctx.save();
             ctx.strokeStyle = '#00e676';
-            ctx.lineWidth = 2.5;
+            ctx.shadowColor = '#00e676';
+            ctx.shadowBlur = 8;
+            ctx.lineWidth = 3.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
             ctx.beginPath();
             state.plannedPath.forEach((pt, i) => {
                 const sp = worldToScreen(pt[0], pt[1]);
@@ -388,6 +419,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 else ctx.lineTo(sp.x, sp.y);
             });
             ctx.stroke();
+
+            // Draw small waypoint beads along trajectory
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 0;
+            state.plannedPath.forEach((pt, i) => {
+                if (i % 4 === 0) {
+                    const sp = worldToScreen(pt[0], pt[1]);
+                    ctx.beginPath();
+                    ctx.arc(sp.x, sp.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            ctx.restore();
         }
 
         // 5. Draw Destination Goal Marker (Target)
@@ -429,35 +473,61 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        // 6. Draw Robot Chassis at its actual world position!
+        // 6. Draw Moving Robot Chassis at its Live World Position!
         const rPos = worldToScreen(state.pose.x, state.pose.y);
         ctx.save();
         ctx.translate(rPos.x, rPos.y);
-        // Canvas rotation: standard ROS yaw angle (0 = East/right, pi/2 = North/up)
-        // Canvas Y is downwards, so counter-clockwise rotation is negative
+
+        // Live Radar Ping Halo around vehicle
+        const pingRadius = 14 + (Math.sin(Date.now() / 250) * 4);
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, pingRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Rotate vehicle body by Yaw angle
         ctx.rotate(-state.pose.yaw);
 
-        // Robot Body (Nose points along +X, to the right when yaw=0)
-        ctx.fillStyle = 'rgba(0, 242, 254, 0.45)';
+        // Tread Tracks (Left & Right)
+        ctx.fillStyle = '#0f172a';
         ctx.strokeStyle = '#00f2fe';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(-12, -14, 24, 6);
+        ctx.strokeRect(-12, -14, 24, 6);
+        ctx.fillRect(-12, 8, 24, 6);
+        ctx.strokeRect(-12, 8, 24, 6);
+
+        // Main Hull Body
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.6)';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(18, 0);     // Nose forward (+X)
-        ctx.lineTo(-12, -10);  // Back left
-        ctx.lineTo(-6, 0);     // Inset tail
-        ctx.lineTo(-12, 10);   // Back right
+        ctx.moveTo(16, 0);      // Front nose wedge
+        ctx.lineTo(8, -8);
+        ctx.lineTo(-10, -8);
+        ctx.lineTo(-10, 8);
+        ctx.lineTo(8, 8);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        // Heading Indicator Arrow
+        // Directional Heading Laser
         ctx.strokeStyle = '#ff9100';
+        ctx.shadowColor = '#ff9100';
+        ctx.shadowBlur = 6;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(26, 0);
+        ctx.lineTo(24, 0);
         ctx.stroke();
 
+        // Trishul UGV Label Tag
+        ctx.rotate(state.pose.yaw); // Un-rotate for horizontal readable text
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#00f2fe';
+        ctx.font = 'bold 9px monospace';
+        ctx.fillText('TRISHUL UGV', -24, -20);
         ctx.restore();
 
         // 7. Interactive Hover Target Crosshair & Coordinate Tooltip
@@ -613,13 +683,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (index === 0) {
                 state.activeFeed = 'combined';
-                logEvent('CAMERA', 'Switched to FRONT (AI YOLO ANNOTATED)');
+                logEvent('CAMERA', 'Switched to FRONT (3D Depth Heatmap Active)');
             } else if (index === 1) {
-                state.activeFeed = 'raw';
-                logEvent('CAMERA', 'Switched to RAW SENSOR FEED (/camera/image_raw)');
+                state.activeFeed = 'stereo';
+                logEvent('CAMERA', 'Switched to STEREO (Hardware Camera Offline)', 'warn');
             } else {
                 state.activeFeed = 'rear';
-                logEvent('CAMERA', 'Switched to REAR / OVERHEAD PERSPECTIVE');
+                logEvent('CAMERA', 'Switched to REAR (Hardware Camera Offline)', 'warn');
             }
 
             if (elVideoFeed) {

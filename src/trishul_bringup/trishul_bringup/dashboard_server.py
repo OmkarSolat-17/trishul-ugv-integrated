@@ -104,6 +104,30 @@ class SharedDashboardState:
 
     def get_jpeg(self, feed='combined'):
         with self.lock:
+            # Handle secondary camera feeds when offline
+            if feed in ('stereo', 'rear'):
+                img = np.zeros((480, 640, 3), dtype=np.uint8)
+                img[:] = (12, 16, 24)
+                for x in range(0, 640, 40): cv2.line(img, (x, 0), (x, 480), (20, 28, 42), 1)
+                for y in range(0, 480, 40): cv2.line(img, (0, y), (640, y), (20, 28, 42), 1)
+
+                cv2.rectangle(img, (20, 20), (620, 460), (0, 180, 216), 1)
+                cv2.rectangle(img, (60, 150), (580, 330), (20, 28, 42), -1)
+                cv2.rectangle(img, (60, 150), (580, 330), (255, 82, 82), 1)
+
+                cam_name = "STEREO OPTICAL CAMERA" if feed == 'stereo' else "REAR RECON CAMERA"
+                cv2.putText(img, f"[!] {cam_name}", (80, 200),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 82, 82), 2, cv2.LINE_AA)
+                cv2.putText(img, "SENSOR STATUS: CAMERA NOT AVAILABLE RIGHT NOW", (80, 240),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 171, 0), 1, cv2.LINE_AA)
+                cv2.putText(img, "Simulation model does not mount this secondary physical sensor.", (80, 270),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.42, (203, 213, 225), 1, cv2.LINE_AA)
+                cv2.putText(img, "Switch back to '3D DEPTH HEATMAP' for active forward vision.", (80, 295),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 242, 254), 1, cv2.LINE_AA)
+
+                _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                return jpeg.tobytes()
+
             if feed == 'raw' and self.raw_jpeg is not None:
                 return self.raw_jpeg
             if self.latest_jpeg is not None:
@@ -168,7 +192,7 @@ class SharedDashboardState:
             return jpeg.tobytes()
 
     def _load_fallback_map(self):
-        """Preload the tb3_sandbox arena map so the 2D map canvas displays immediately."""
+        """Preload the tb3_sandbox arena map with dilated high-contrast tactical walls."""
         pgm_path = '/opt/ros/jazzy/share/nav2_bringup/maps/tb3_sandbox.pgm'
         if os.path.exists(pgm_path):
             try:
@@ -183,9 +207,19 @@ class SharedDashboardState:
                         'origin_y': -10.0,
                     }
                     map_rgba = np.zeros((h, w, 4), dtype=np.uint8)
-                    map_rgba[pgm > 240] = [36, 48, 68, 235]       # Free space
-                    map_rgba[pgm < 100] = [0, 242, 254, 255]     # Walls / Obstacles (Cyan)
-                    map_rgba[(pgm >= 100) & (pgm <= 240)] = [18, 26, 38, 160] # Unknown
+
+                    # Free space: high-visibility tactical floor (Navy Slate #1b2838)
+                    map_rgba[pgm > 240] = [27, 40, 56, 255]
+
+                    # Obstacles & walls: Dilate so walls are thick, crisp, and high-visibility
+                    obs_mask = (pgm < 100).astype(np.uint8)
+                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+                    obs_dilated = cv2.dilate(obs_mask, kernel, iterations=1)
+                    map_rgba[obs_dilated > 0] = [0, 242, 254, 255] # Electric Cyan Walls
+
+                    # Unknown outer void
+                    map_rgba[(pgm >= 100) & (pgm <= 240) & (obs_dilated == 0)] = [8, 12, 18, 210]
+
                     map_rgba = np.flipud(map_rgba)
                     ret, buf = cv2.imencode('.png', map_rgba)
                     if ret:
