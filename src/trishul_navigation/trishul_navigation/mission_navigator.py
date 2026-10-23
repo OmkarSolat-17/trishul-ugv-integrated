@@ -72,8 +72,9 @@ def main(args=None):
             last_feedback_time = current_time
             dist = feedback.distance_remaining
             eta = feedback.estimated_time_remaining
+            eta_sec = eta.sec + eta.nanosec * 1e-9 if hasattr(eta, 'sec') else float(eta)
             navigator.get_logger().info(
-                f'Traversing to target | Distance remaining: {dist:.2f} m | ETA: {eta:.1f} s'
+                f'Traversing to target | Distance remaining: {dist:.2f} m | ETA: {eta_sec:.1f} s'
             )
 
         time.sleep(0.1)
