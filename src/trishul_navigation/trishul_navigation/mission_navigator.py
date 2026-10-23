@@ -14,7 +14,7 @@ def create_pose(navigator, x, y, yaw_deg=0.0):
     pose.header.stamp = navigator.get_clock().now().to_msg()
     pose.pose.position.x = float(x)
     pose.pose.position.y = float(y)
-    pose.pose.position.z = 0.0
+    pose.pose.position.z = 0.01
 
     yaw_rad = math.radians(yaw_deg)
     pose.pose.orientation.z = math.sin(yaw_rad / 2.0)
@@ -34,16 +34,21 @@ def main(args=None):
     navigator = BasicNavigator()
 
     navigator.get_logger().info('Trishul Mission Navigator initialized.')
-    navigator.get_logger().info('Synchronizing with Nav2 stack and simulation clock...')
 
+    # 1. Automatically set initial pose to match Gazebo spawn (-2.0, -0.5, yaw=0.0)
+    init_pose = create_pose(navigator, -2.00, -0.50, yaw_deg=0.0)
+    navigator.get_logger().info('Setting initial pose to match Gazebo: (-2.00, -0.50)...')
+    navigator.setInitialPose(init_pose)
+
+    navigator.get_logger().info('Waiting for Nav2 stack to become active...')
     navigator.waitUntilNav2Active()
-    navigator.get_logger().info('Nav2 is fully active! Ready to navigate.')
+    navigator.get_logger().info('Nav2 is fully active! Starting mission.')
 
-    # Safe, open-space waypoints in the Gazebo sandbox
+    # 2. Define waypoints along open perimeter corridors (away from pillars)
     waypoints = [
-        ('Corridor Alpha', -1.0, -0.5, 0.0),
-        ('Corridor Bravo', 0.0, 0.5, 90.0),
-        ('Base Return', -2.0, -0.5, 180.0),
+        ('Corridor Alpha (North)', -2.0, 0.8, 90.0),
+        ('Corridor Bravo (East)', -0.5, 1.8, 0.0),
+        ('Base Return (Spawn)', -2.0, -0.5, 180.0),
     ]
 
     for name, x, y, yaw in waypoints:
@@ -77,7 +82,6 @@ def main(args=None):
             break
 
     navigator.get_logger().info('Trishul mission finished.')
-    # Destroy only the mission navigator node - NEVER shut down Nav2 lifecycle nodes
     navigator.destroy_node()
     if rclpy.ok():
         rclpy.shutdown()
