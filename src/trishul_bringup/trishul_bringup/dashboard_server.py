@@ -40,6 +40,7 @@ class SharedDashboardState:
         self.lock = threading.Lock()
         self.latest_jpeg = None
         self.raw_jpeg = None
+        self.optical_jpeg = None
         self.pose = {'x': -2.0, 'y': -0.5, 'yaw': 0.0}
         self.vel = {'linear': 0.0, 'angular': 0.0}
         self.closest_obstacle = 20.0
@@ -104,10 +105,53 @@ class SharedDashboardState:
             if ret:
                 self.raw_jpeg = jpeg.tobytes()
 
+    def update_optical_frame(self, bgr_img):
+        with self.lock:
+            h, w = bgr_img.shape[:2]
+            cv2.putText(
+                bgr_img,
+                f"TRISHUL STEREO OPTICAL [/camera/color/image_raw] | {time.strftime('%H:%M:%S')}",
+                (14, h - 14),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (0, 242, 254),
+                1,
+                cv2.LINE_AA,
+            )
+            ret, jpeg = cv2.imencode('.jpg', bgr_img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if ret:
+                self.optical_jpeg = jpeg.tobytes()
+
     def get_jpeg(self, feed='combined'):
         with self.lock:
-            # Handle secondary camera feeds when offline
-            if feed in ('stereo', 'rear'):
+            # Handle forward stereo / optical camera feed
+            if feed in ('stereo', 'optical'):
+                if self.optical_jpeg is not None:
+                    return self.optical_jpeg
+                # Tactical standby frame if optical feed not yet publishing
+                img = np.zeros((480, 640, 3), dtype=np.uint8)
+                img[:] = (12, 16, 24)
+                for x in range(0, 640, 40): cv2.line(img, (x, 0), (x, 480), (20, 28, 42), 1)
+                for y in range(0, 480, 40): cv2.line(img, (0, y), (640, y), (20, 28, 42), 1)
+
+                cv2.rectangle(img, (20, 20), (620, 460), (0, 180, 216), 1)
+                cv2.rectangle(img, (60, 150), (580, 330), (20, 28, 42), -1)
+                cv2.rectangle(img, (60, 150), (580, 330), (0, 242, 254), 1)
+
+                cv2.putText(img, "[!] STEREO OPTICAL CAMERA", (80, 200),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 242, 254), 2, cv2.LINE_AA)
+                cv2.putText(img, "SENSOR STATUS: CAMERA NOT AVAILABLE RIGHT NOW", (80, 240),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 171, 0), 1, cv2.LINE_AA)
+                cv2.putText(img, "Secondary physical optical sensor is currently offline or standby.", (80, 270),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.42, (203, 213, 225), 1, cv2.LINE_AA)
+                cv2.putText(img, "Switch back to '3D DEPTH HEATMAP' for active forward vision.", (80, 295),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 242, 254), 1, cv2.LINE_AA)
+
+                _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                return jpeg.tobytes()
+
+            # Handle rear reconnaissance camera feed
+            if feed == 'rear':
                 img = np.zeros((480, 640, 3), dtype=np.uint8)
                 img[:] = (12, 16, 24)
                 for x in range(0, 640, 40): cv2.line(img, (x, 0), (x, 480), (20, 28, 42), 1)
@@ -117,12 +161,11 @@ class SharedDashboardState:
                 cv2.rectangle(img, (60, 150), (580, 330), (20, 28, 42), -1)
                 cv2.rectangle(img, (60, 150), (580, 330), (255, 82, 82), 1)
 
-                cam_name = "STEREO OPTICAL CAMERA" if feed == 'stereo' else "REAR RECON CAMERA"
-                cv2.putText(img, f"[!] {cam_name}", (80, 200),
+                cv2.putText(img, "[!] REAR RECON CAMERA", (80, 200),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 82, 82), 2, cv2.LINE_AA)
                 cv2.putText(img, "SENSOR STATUS: CAMERA NOT AVAILABLE RIGHT NOW", (80, 240),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 171, 0), 1, cv2.LINE_AA)
-                cv2.putText(img, "Simulation model does not mount this secondary physical sensor.", (80, 270),
+                cv2.putText(img, "Rear reconnaissance sensor payload is currently unmounted.", (80, 270),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.42, (203, 213, 225), 1, cv2.LINE_AA)
                 cv2.putText(img, "Switch back to '3D DEPTH HEATMAP' for active forward vision.", (80, 295),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 242, 254), 1, cv2.LINE_AA)
@@ -320,7 +363,12 @@ class DashboardHTTPRequestHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    feed = 'raw' if 'feed=raw' in self.path else 'combined'
+                    feed = 'combined'
+                    if 'feed=' in self.path:
+                        try:
+                            feed = self.path.split('feed=')[1].split('&')[0]
+                        except Exception:
+                            feed = 'combined'
                     frame = self.shared_state.get_jpeg(feed)
                     self.wfile.write(b'--frame\r\n')
                     self.send_header('Content-Type', 'image/jpeg')
@@ -511,6 +559,9 @@ class TrishulDashboardServerNode(Node):
         self.image_sub = self.create_subscription(
             Image, '/ugv/combined/image', self.image_callback, sensor_qos, callback_group=self.cb_group
         )
+        self.color_image_sub = self.create_subscription(
+            Image, '/camera/color/image_raw', self.color_image_callback, sensor_qos, callback_group=self.cb_group
+        )
         self.raw_image_sub = self.create_subscription(
             Image, '/camera/image_raw', self.raw_image_callback, sensor_qos, callback_group=self.cb_group
         )
@@ -562,6 +613,16 @@ class TrishulDashboardServerNode(Node):
 
     def image_callback(self, msg: Image):
         self._decode_image(msg)
+
+    def color_image_callback(self, msg: Image):
+        try:
+            if msg.encoding in ('bgr8', 'rgb8'):
+                img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
+                if msg.encoding == 'rgb8':
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                self.shared_state.update_optical_frame(img)
+        except Exception:
+            pass
 
     def raw_image_callback(self, msg: Image):
         try:

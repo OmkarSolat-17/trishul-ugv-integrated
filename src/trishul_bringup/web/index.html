@@ -58,9 +58,9 @@
                     <span class="hud-bracket">]</span>
                 </div>
                 <div class="camera-selectors">
-                    <button class="cam-btn active" title="Camera feed offline in tb3_sandbox. Navigation powered by 360 LiDAR.">3D DEPTH HEATMAP (ACTIVE)</button>
-                    <button class="cam-btn disabled" disabled title="Pending 4-camera UGV hardware model">STEREO (OFFLINE)</button>
-                    <button class="cam-btn disabled" disabled title="Pending 4-camera UGV hardware model">REAR (OFFLINE)</button>
+                    <button class="cam-btn active" data-feed="combined" id="btn-cam-depth" title="Switch to 3D Depth Perception Heatmap">3D DEPTH HEATMAP</button>
+                    <button class="cam-btn" data-feed="stereo" id="btn-cam-stereo" title="Switch to Stereo Optical Camera">STEREO CAM</button>
+                    <button class="cam-btn" data-feed="rear" id="btn-cam-rear" title="Switch to Rear Tactical Reconnaissance Camera">REAR RECON CAM</button>
                 </div>
             </div>
 

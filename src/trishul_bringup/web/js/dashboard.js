@@ -672,23 +672,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---------------- Camera Feed Switcher Buttons ----------------
     const camButtons = document.querySelectorAll('.cam-btn');
-    camButtons.forEach((btn, index) => {
+    camButtons.forEach((btn) => {
         btn.removeAttribute('disabled');
         btn.classList.remove('disabled');
 
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
             camButtons.forEach((b) => b.classList.remove('active'));
             btn.classList.add('active');
 
-            if (index === 0) {
-                state.activeFeed = 'combined';
-                logEvent('CAMERA', 'Switched to FRONT (3D Depth Heatmap Active)');
-            } else if (index === 1) {
-                state.activeFeed = 'stereo';
-                logEvent('CAMERA', 'Switched to STEREO (Hardware Camera Offline)', 'warn');
+            const feed = btn.getAttribute('data-feed') || 'combined';
+            state.activeFeed = feed;
+
+            if (feed === 'combined') {
+                logEvent('CAMERA', 'Switched to FRONT [3D Depth Perception Heatmap Active]');
+                if (elFeedStatus) elFeedStatus.textContent = '3D DEPTH PERCEPTION';
+                if (elFps) {
+                    elFps.textContent = 'LIVE';
+                    elFps.style.color = '#00f2fe';
+                }
+            } else if (feed === 'stereo') {
+                logEvent('CAMERA', 'Switched to FORWARD STEREO OPTICAL CAM');
+                if (elFeedStatus) elFeedStatus.textContent = 'STEREO OPTICAL';
+                if (elFps) {
+                    elFps.textContent = 'ONLINE';
+                    elFps.style.color = '#00f2fe';
+                }
             } else {
-                state.activeFeed = 'rear';
-                logEvent('CAMERA', 'Switched to REAR (Hardware Camera Offline)', 'warn');
+                logEvent('CAMERA', 'Switched to REAR RECONNAISSANCE CAM');
+                if (elFeedStatus) elFeedStatus.textContent = 'REAR RECON';
+                if (elFps) {
+                    elFps.textContent = 'STANDBY';
+                    elFps.style.color = '#ffab00';
+                }
             }
 
             if (elVideoFeed) {
