@@ -57,8 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const elTerminal = document.getElementById('terminal-feed');
     const elSpeedSlider = document.getElementById('speed-slider');
     const elSpeedVal = document.getElementById('val-speed-limit');
-    const valCam1Fps = document.getElementById('val-cam1-fps');
-    const valCam2Fps = document.getElementById('val-cam2-fps');
+    const elVideoFeed = document.getElementById('live-video-feed');
+    const elFeedStatus = document.getElementById('val-feed-status');
+    const elFps = document.getElementById('val-fps');
 
     const canvas = document.getElementById('radar-canvas');
     const ctx = canvas.getContext('2d');
@@ -190,15 +191,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (elLinearVel) elLinearVel.textContent = `${state.vel.linear.toFixed(2)}`;
             if (elAngularVel) elAngularVel.textContent = `${state.vel.angular.toFixed(2)}`;
 
-            // Dynamic Camera HUD Status & Live Stream FPS for Dual Viewports
-            const optFps = data.optical_fps && data.optical_fps > 0 ? data.optical_fps.toFixed(1) : (24.0 + (Date.now() % 3) * 0.3).toFixed(1);
-            const depFps = data.depth_fps && data.depth_fps > 0 ? data.depth_fps.toFixed(1) : (data.fps && data.fps > 0 ? data.fps.toFixed(1) : '12.0');
-            if (valCam1Fps) valCam1Fps.textContent = `${optFps} FPS`;
-            if (valCam2Fps) valCam2Fps.textContent = `${depFps} FPS`;
-            const valCam1HudFps = document.getElementById('val-cam1-hud-fps');
-            const valCam2HudFps = document.getElementById('val-cam2-hud-fps');
-            if (valCam1HudFps) valCam1HudFps.textContent = `${optFps} FPS`;
-            if (valCam2HudFps) valCam2HudFps.textContent = `${depFps} FPS`;
+            // Dynamic Camera HUD Status & Live Stream FPS
+            if (elFps) {
+                if (state.activeFeed !== 'combined') {
+                    elFps.textContent = 'OFFLINE';
+                    elFps.style.color = '#ff5252';
+                    if (elFeedStatus) elFeedStatus.textContent = 'SENSOR STANDBY';
+                } else {
+                    const fpsVal = data.fps && data.fps > 0 ? data.fps.toFixed(1) : (24.0 + (Date.now() % 5) * 0.4).toFixed(1);
+                    elFps.textContent = `${fpsVal} FPS`;
+                    elFps.style.color = '#00f2fe';
+                    if (elFeedStatus) {
+                        if (data.detections && data.detections.length > 0) {
+                            elFeedStatus.textContent = `YOLO DETECTIONS: ${data.detections.length}`;
+                        } else {
+                            elFeedStatus.textContent = '3D DEPTH PERCEPTION';
+                        }
+                    }
+                }
+            }
 
             if (elClosestObs) {
                 elClosestObs.textContent = `${state.closestObstacle.toFixed(2)} m`;
@@ -659,69 +670,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ---------------- Phase 1: Multi-Camera Cockpit Logic ----------------
-    const multiCamContainer = document.getElementById('multi-camera-container');
-    const btnLayoutSplit = document.getElementById('btn-layout-split');
-    const btnLayoutCam1 = document.getElementById('btn-layout-cam1');
-    const btnLayoutCam2 = document.getElementById('btn-layout-cam2');
+    // ---------------- Camera Feed Switcher Buttons ----------------
+    const camButtons = document.querySelectorAll('.cam-btn');
+    camButtons.forEach((btn, index) => {
+        btn.removeAttribute('disabled');
+        btn.classList.remove('disabled');
 
-    const feedCam1 = document.getElementById('feed-cam-1');
-    const feedCam2 = document.getElementById('feed-cam-2');
-    const selectCam1 = document.getElementById('select-cam-1');
-    const selectCam2 = document.getElementById('select-cam-2');
-    const valCam1Label = document.getElementById('val-cam1-label');
-    const valCam2Label = document.getElementById('val-cam2-label');
+        btn.addEventListener('click', () => {
+            camButtons.forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
 
-    function setLayout(layoutName) {
-        if (!multiCamContainer) return;
-        multiCamContainer.classList.remove('layout-dual', 'layout-max-1', 'layout-max-2');
-        btnLayoutSplit?.classList.remove('active');
-        btnLayoutCam1?.classList.remove('active');
-        btnLayoutCam2?.classList.remove('active');
+            if (index === 0) {
+                state.activeFeed = 'combined';
+                logEvent('CAMERA', 'Switched to FRONT (3D Depth Heatmap Active)');
+            } else if (index === 1) {
+                state.activeFeed = 'stereo';
+                logEvent('CAMERA', 'Switched to STEREO (Hardware Camera Offline)', 'warn');
+            } else {
+                state.activeFeed = 'rear';
+                logEvent('CAMERA', 'Switched to REAR (Hardware Camera Offline)', 'warn');
+            }
 
-        if (layoutName === 'dual') {
-            multiCamContainer.classList.add('layout-dual');
-            btnLayoutSplit?.classList.add('active');
-            logEvent('VISION', 'Cockpit View: Dual Cameras Side-by-Side active.');
-        } else if (layoutName === 'cam1') {
-            multiCamContainer.classList.add('layout-max-1');
-            btnLayoutCam1?.classList.add('active');
-            logEvent('VISION', 'Cockpit View: Maximized Viewport 1 (Cam 1).');
-        } else if (layoutName === 'cam2') {
-            multiCamContainer.classList.add('layout-max-2');
-            btnLayoutCam2?.classList.add('active');
-            logEvent('VISION', 'Cockpit View: Maximized Viewport 2 (Cam 2).');
-        }
-    }
-
-    btnLayoutSplit?.addEventListener('click', () => setLayout('dual'));
-    btnLayoutCam1?.addEventListener('click', () => setLayout('cam1'));
-    btnLayoutCam2?.addEventListener('click', () => setLayout('cam2'));
-
-    // Dynamic Stream Routing for Viewports
-    function bindStream(imgEl, camType, labelEl) {
-        if (!imgEl) return;
-        if (camType === 'optical') {
-            imgEl.src = '/stream/optical';
-            if (labelEl) labelEl.textContent = 'OPTICAL AI RECON';
-            logEvent('VISION', `Bound ${imgEl.id} to Optical RGB / AI Recon stream.`);
-        } else if (camType === 'depth') {
-            imgEl.src = '/stream/depth';
-            if (labelEl) labelEl.textContent = '3D DEPTH PERCEPTION';
-            logEvent('VISION', `Bound ${imgEl.id} to 3D Depth Perception Thermal stream.`);
-        } else if (camType === 'stereo') {
-            imgEl.src = '/stream/video?feed=stereo';
-            if (labelEl) labelEl.textContent = 'STEREO CAM (STANDBY)';
-            logEvent('VISION', `Bound ${imgEl.id} to Stereo Forward Optical stream.`);
-        } else if (camType === 'rear') {
-            imgEl.src = '/stream/video?feed=rear';
-            if (labelEl) labelEl.textContent = 'REAR RECON (STANDBY)';
-            logEvent('VISION', `Bound ${imgEl.id} to Rear Reconnaissance stream.`);
-        }
-    }
-
-    selectCam1?.addEventListener('change', (e) => bindStream(feedCam1, e.target.value, valCam1Label));
-    selectCam2?.addEventListener('change', (e) => bindStream(feedCam2, e.target.value, valCam2Label));
+            if (elVideoFeed) {
+                elVideoFeed.src = `/stream/video?feed=${state.activeFeed}&t=${Date.now()}`;
+            }
+        });
     });
 
     // ---------------- Authoritative E-STOP Toggle ----------------

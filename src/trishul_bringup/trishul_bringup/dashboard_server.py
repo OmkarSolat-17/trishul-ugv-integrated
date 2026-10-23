@@ -38,20 +38,8 @@ class SharedDashboardState:
     """Thread-safe state store shared between ROS 2 callbacks and HTTP request handler."""
     def __init__(self):
         self.lock = threading.Lock()
-        self.optical_jpeg = None
-        self.depth_jpeg = None
-        self.raw_jpeg = None
         self.latest_jpeg = None
-        self.optical_fps = 0.0
-        self.depth_fps = 0.0
-        self._last_optical_time = time.time()
-        self._last_depth_time = time.time()
-        self.cuda_available = False
-        try:
-            import torch
-            self.cuda_available = torch.cuda.is_available()
-        except ImportError:
-            self.cuda_available = False
+        self.raw_jpeg = None
         self.pose = {'x': -2.0, 'y': -0.5, 'yaw': 0.0}
         self.vel = {'linear': 0.0, 'angular': 0.0}
         self.closest_obstacle = 20.0
@@ -76,108 +64,78 @@ class SharedDashboardState:
         self.fps = 30.0
         self._last_frame_time = time.time()
 
-    def update_depth_frame(self, bgr_img):
+    def update_frame(self, bgr_img):
         with self.lock:
             h, w = bgr_img.shape[:2]
+            # Overlay status banner
             cv2.putText(
                 bgr_img,
-                f"CAM 2: 3D DEPTH THERMAL HEATMAP | {time.strftime('%H:%M:%S')}",
+                f"TRISHUL 3D DEPTH STREAM [/ugv/combined/image] | {time.strftime('%H:%M:%S')}",
                 (14, h - 14),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.42,
+                0.45,
                 (0, 242, 254),
                 1,
                 cv2.LINE_AA,
             )
             ret, jpeg = cv2.imencode('.jpg', bgr_img, [cv2.IMWRITE_JPEG_QUALITY, 80])
             if ret:
-                self.depth_jpeg = jpeg.tobytes()
-                self.latest_jpeg = self.depth_jpeg
+                self.latest_jpeg = jpeg.tobytes()
                 now = time.time()
-                dt = now - self._last_depth_time
+                dt = now - self._last_frame_time
                 if dt > 0:
-                    self.depth_fps = round(0.9 * self.depth_fps + 0.1 * (1.0 / dt), 1)
-                    self.fps = self.depth_fps
-                self._last_depth_time = now
+                    self.fps = round(0.9 * self.fps + 0.1 * (1.0 / dt), 1)
+                self._last_frame_time = now
 
-    def update_optical_frame(self, bgr_img):
+    def update_raw_frame(self, bgr_img):
         with self.lock:
             h, w = bgr_img.shape[:2]
-            accel_tag = "CUDA: RTX 3050" if self.cuda_available else "CPU ACCELERATED"
             cv2.putText(
                 bgr_img,
-                f"CAM 1: OPTICAL RGB / AI RECON [{accel_tag}] | {time.strftime('%H:%M:%S')}",
+                f"TRISHUL RAW CAMERA [/camera/image_raw] | {time.strftime('%H:%M:%S')}",
                 (14, h - 14),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.42,
-                (0, 230, 118),
+                0.45,
+                (0, 242, 254),
                 1,
                 cv2.LINE_AA,
             )
             ret, jpeg = cv2.imencode('.jpg', bgr_img, [cv2.IMWRITE_JPEG_QUALITY, 80])
             if ret:
-                self.optical_jpeg = jpeg.tobytes()
-                now = time.time()
-                dt = now - self._last_optical_time
-                if dt > 0:
-                    self.optical_fps = round(0.9 * self.optical_fps + 0.1 * (1.0 / dt), 1)
-                self._last_optical_time = now
-
-    def update_frame(self, bgr_img):
-        self.update_depth_frame(bgr_img)
-
-    def update_raw_frame(self, bgr_img):
-        self.update_optical_frame(bgr_img)
-
-    def _create_standby_frame(self, title, subtitle):
-        img = np.zeros((480, 640, 3), dtype=np.uint8)
-        img[:] = (10, 15, 22)
-        for x in range(0, 640, 40): cv2.line(img, (x, 0), (x, 480), (18, 25, 38), 1)
-        for y in range(0, 480, 40): cv2.line(img, (0, y), (640, y), (18, 25, 38), 1)
-        cv2.rectangle(img, (16, 16), (624, 464), (0, 242, 254), 1)
-        cv2.rectangle(img, (50, 140), (590, 340), (15, 23, 35), -1)
-        cv2.rectangle(img, (50, 140), (590, 340), (0, 180, 216), 1)
-        cv2.putText(img, f"[!] {title}", (70, 195),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 242, 254), 2, cv2.LINE_AA)
-        cv2.putText(img, subtitle, (70, 235),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 171, 0), 1, cv2.LINE_AA)
-        cv2.putText(img, "Standby channel ready. Awaiting physical/simulated sensor feed.", (70, 270),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.40, (148, 163, 184), 1, cv2.LINE_AA)
-        cv2.putText(img, f"GPU ACCELERATION: NVIDIA RTX 3050 READY | {time.strftime('%H:%M:%S')}", (70, 305),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 230, 118), 1, cv2.LINE_AA)
-        _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
-        return jpeg.tobytes()
-
-    def get_optical_jpeg(self):
-        with self.lock:
-            if self.optical_jpeg is not None:
-                return self.optical_jpeg
-            return self._create_standby_frame(
-                "CAM 1: OPTICAL RGB / AI RECON CAM",
-                "OPTICAL VISION CHANNEL ONLINE -- AWAITING RGB FRAMES"
-            )
-
-    def get_depth_jpeg(self):
-        with self.lock:
-            if self.depth_jpeg is not None:
-                return self.depth_jpeg
-            if self.latest_jpeg is not None:
-                return self.latest_jpeg
-            return self._create_standby_frame(
-                "CAM 2: 3D DEPTH PERCEPTION HEATMAP",
-                "3D DEPTH CHANNEL ONLINE -- COMPUTING TERRAIN HEATMAP"
-            )
+                self.raw_jpeg = jpeg.tobytes()
 
     def get_jpeg(self, feed='combined'):
         with self.lock:
-            if feed == 'optical' or feed == 'raw':
-                return self.get_optical_jpeg()
-            if feed == 'depth' or feed == 'combined':
-                return self.get_depth_jpeg()
+            # Handle secondary camera feeds when offline
             if feed in ('stereo', 'rear'):
-                cam_name = "STEREO FORWARD OPTICAL" if feed == 'stereo' else "REAR RECON CAMERA"
-                return self._create_standby_frame(cam_name, "SECONDARY SENSOR CHANNEL STANDBY")
-            return self.get_depth_jpeg()
+                img = np.zeros((480, 640, 3), dtype=np.uint8)
+                img[:] = (12, 16, 24)
+                for x in range(0, 640, 40): cv2.line(img, (x, 0), (x, 480), (20, 28, 42), 1)
+                for y in range(0, 480, 40): cv2.line(img, (0, y), (640, y), (20, 28, 42), 1)
+
+                cv2.rectangle(img, (20, 20), (620, 460), (0, 180, 216), 1)
+                cv2.rectangle(img, (60, 150), (580, 330), (20, 28, 42), -1)
+                cv2.rectangle(img, (60, 150), (580, 330), (255, 82, 82), 1)
+
+                cam_name = "STEREO OPTICAL CAMERA" if feed == 'stereo' else "REAR RECON CAMERA"
+                cv2.putText(img, f"[!] {cam_name}", (80, 200),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 82, 82), 2, cv2.LINE_AA)
+                cv2.putText(img, "SENSOR STATUS: CAMERA NOT AVAILABLE RIGHT NOW", (80, 240),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 171, 0), 1, cv2.LINE_AA)
+                cv2.putText(img, "Simulation model does not mount this secondary physical sensor.", (80, 270),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.42, (203, 213, 225), 1, cv2.LINE_AA)
+                cv2.putText(img, "Switch back to '3D DEPTH HEATMAP' for active forward vision.", (80, 295),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 242, 254), 1, cv2.LINE_AA)
+
+                _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                return jpeg.tobytes()
+
+            if feed == 'raw' and self.raw_jpeg is not None:
+                return self.raw_jpeg
+            if self.latest_jpeg is not None:
+                return self.latest_jpeg
+            if self.raw_jpeg is not None:
+                return self.raw_jpeg
 
             # Tactical Simulation Status Screen (Camera Offline Notification)
             img = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -335,9 +293,6 @@ class SharedDashboardState:
                 'distance_remaining': round(self.distance_remaining, 2),
                 'eta_seconds': round(self.eta_seconds, 1),
                 'fps': self.fps,
-                'optical_fps': self.optical_fps,
-                'depth_fps': self.depth_fps,
-                'cuda_available': self.cuda_available,
             }
 
 
@@ -354,67 +309,18 @@ class DashboardHTTPRequestHandler(SimpleHTTPRequestHandler):
         return os.path.join(self.web_dir, clean_path.lstrip('/'))
 
     def do_GET(self):
-        # Dedicated Optical RGB Stream (Separate Viewport)
-        if self.path.startswith('/stream/optical'):
+        if self.path.startswith('/stream/video'):
             self.send_response(200)
             self.send_header('Age', '0')
             self.send_header('Cache-Control', 'no-cache, private')
             self.send_header('Pragma', 'no-cache')
-            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
+            self.send_header(
+                'Content-Type', 'multipart/x-mixed-replace; boundary=frame'
+            )
             self.end_headers()
             try:
                 while True:
-                    frame = self.shared_state.get_optical_jpeg()
-                    self.wfile.write(b'--frame\r\n')
-                    self.send_header('Content-Type', 'image/jpeg')
-                    self.send_header('Content-Length', str(len(frame)))
-                    self.end_headers()
-                    self.wfile.write(frame)
-                    self.wfile.write(b'\r\n')
-                    time.sleep(0.04)
-            except (ConnectionResetError, BrokenPipeError):
-                pass
-            return
-
-        # Dedicated 3D Depth Thermal Heatmap Stream (Separate Viewport)
-        elif self.path.startswith('/stream/depth'):
-            self.send_response(200)
-            self.send_header('Age', '0')
-            self.send_header('Cache-Control', 'no-cache, private')
-            self.send_header('Pragma', 'no-cache')
-            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
-            self.end_headers()
-            try:
-                while True:
-                    frame = self.shared_state.get_depth_jpeg()
-                    self.wfile.write(b'--frame\r\n')
-                    self.send_header('Content-Type', 'image/jpeg')
-                    self.send_header('Content-Length', str(len(frame)))
-                    self.end_headers()
-                    self.wfile.write(frame)
-                    self.wfile.write(b'\r\n')
-                    time.sleep(0.04)
-            except (ConnectionResetError, BrokenPipeError):
-                pass
-            return
-
-        # Configurable Dynamic Video Stream
-        elif self.path.startswith('/stream/video'):
-            self.send_response(200)
-            self.send_header('Age', '0')
-            self.send_header('Cache-Control', 'no-cache, private')
-            self.send_header('Pragma', 'no-cache')
-            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
-            self.end_headers()
-            feed = 'depth'
-            if 'feed=optical' in self.path or 'feed=raw' in self.path:
-                feed = 'optical'
-            elif 'feed=stereo' in self.path:
-                feed = 'stereo'
-            elif 'feed=rear' in self.path:
-                feed = 'rear'
-            try:
-                while True:
+                    feed = 'raw' if 'feed=raw' in self.path else 'combined'
                     frame = self.shared_state.get_jpeg(feed)
                     self.wfile.write(b'--frame\r\n')
                     self.send_header('Content-Type', 'image/jpeg')
@@ -663,13 +569,17 @@ class TrishulDashboardServerNode(Node):
                 img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
                 if msg.encoding == 'rgb8':
                     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                self.shared_state.update_optical_frame(img)
+                self.shared_state.update_raw_frame(img)
+                if self.shared_state.latest_jpeg is None:
+                    self.shared_state.update_frame(img)
             elif msg.encoding == '32FC1':
                 depth = np.frombuffer(msg.data, dtype=np.float32).reshape((msg.height, msg.width))
                 depth_clean = np.nan_to_num(depth, nan=0.0, posinf=5.0, neginf=0.0)
                 depth_scaled = np.clip(depth_clean / 5.0 * 255.0, 0, 255).astype(np.uint8)
                 img = cv2.applyColorMap(depth_scaled, cv2.COLORMAP_TURBO)
-                self.shared_state.update_depth_frame(img)
+                self.shared_state.update_raw_frame(img)
+                if self.shared_state.latest_jpeg is None:
+                    self.shared_state.update_frame(img)
         except Exception:
             pass
 
