@@ -35,51 +35,54 @@ def main(args=None):
 
     navigator.get_logger().info('Trishul Mission Navigator initialized.')
 
-    # 1. Automatically set initial pose to match Gazebo spawn (-2.0, -0.5, yaw=0.0)
+    # 1. Align initial position with Gazebo spawn point (-2.00, -0.50, yaw=0.0)
     init_pose = create_pose(navigator, -2.00, -0.50, yaw_deg=0.0)
     navigator.get_logger().info('Setting initial pose to match Gazebo: (-2.00, -0.50)...')
     navigator.setInitialPose(init_pose)
 
+    # Allow AMCL and costmaps to settle
+    time.sleep(1.0)
+
     navigator.get_logger().info('Waiting for Nav2 stack to become active...')
     navigator.waitUntilNav2Active()
-    navigator.get_logger().info('Nav2 is fully active! Starting mission.')
+    navigator.get_logger().info('Nav2 is active! Beginning cross-arena traversal.')
 
-    # 2. Define waypoints along open perimeter corridors (away from pillars)
-    waypoints = [
-        ('Corridor Alpha (North)', -2.0, 0.8, 90.0),
-        ('Corridor Bravo (East)', -0.5, 1.8, 0.0),
-        ('Base Return (Spawn)', -2.0, -0.5, 180.0),
-    ]
+    # Destination: Opposite end of the map (Far East side: x = +1.80, y = -0.50)
+    target_x = 1.80
+    target_y = -0.50
+    target_yaw = 0.0
 
-    for name, x, y, yaw in waypoints:
-        goal_pose = create_pose(navigator, x, y, yaw)
-        navigator.get_logger().info(f'Navigating to {name}: ({x:.2f}, {y:.2f})')
+    goal_pose = create_pose(navigator, target_x, target_y, target_yaw)
+    navigator.get_logger().info(
+        f'Target destination: Opposite end of map at ({target_x:.2f}, {target_y:.2f})'
+    )
 
-        navigator.goToPose(goal_pose)
+    navigator.goToPose(goal_pose)
 
-        last_feedback_time = time.time()
-        while not navigator.isTaskComplete():
-            feedback = navigator.getFeedback()
-            current_time = time.time()
+    last_feedback_time = time.time()
+    while not navigator.isTaskComplete():
+        feedback = navigator.getFeedback()
+        current_time = time.time()
 
-            if feedback and (current_time - last_feedback_time >= 2.0):
-                last_feedback_time = current_time
-                dist = feedback.distance_remaining
-                navigator.get_logger().info(
-                    f'En route to {name} | Distance remaining: {dist:.2f} m'
-                )
+        if feedback and (current_time - last_feedback_time >= 2.0):
+            last_feedback_time = current_time
+            dist = feedback.distance_remaining
+            eta = feedback.estimated_time_remaining
+            navigator.get_logger().info(
+                f'Traversing to target | Distance remaining: {dist:.2f} m | ETA: {eta:.1f} s'
+            )
 
-            time.sleep(0.1)
+        time.sleep(0.1)
 
-        result = navigator.getResult()
-        if result == TaskResult.SUCCEEDED:
-            navigator.get_logger().info(f'Reached {name} successfully!')
-        elif result == TaskResult.CANCELED:
-            navigator.get_logger().warning(f'Mission to {name} was canceled.')
-            break
-        elif result == TaskResult.FAILED:
-            navigator.get_logger().error(f'Navigation to {name} failed or timed out.')
-            break
+    result = navigator.getResult()
+    if result == TaskResult.SUCCEEDED:
+        navigator.get_logger().info(
+            'SUCCESS! Robot successfully reached the opposite end of the map!'
+        )
+    elif result == TaskResult.CANCELED:
+        navigator.get_logger().warning('Mission was canceled.')
+    elif result == TaskResult.FAILED:
+        navigator.get_logger().error('Navigation task failed or timed out.')
 
     navigator.get_logger().info('Trishul mission finished.')
     navigator.destroy_node()
