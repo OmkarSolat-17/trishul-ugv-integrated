@@ -676,3 +676,139 @@ body.cyber-tactical {
     -webkit-user-select: text !important;
     cursor: text;
 }
+
+/* ---------------- Multi-Camera Tactical Cockpit (Phase 1) ---------------- */
+.cockpit-layout-pills {
+    display: flex;
+    gap: 6px;
+}
+
+.pill-btn {
+    background: rgba(18, 28, 44, 0.7);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.70rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pill-btn.active, .pill-btn:hover {
+    background: rgba(0, 242, 254, 0.18);
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+}
+
+.multi-camera-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.multi-camera-container.layout-dual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.multi-camera-container.layout-max-1 #card-cam-2 {
+    display: none !important;
+}
+
+.multi-camera-container.layout-max-2 #card-cam-1 {
+    display: none !important;
+}
+
+.camera-card {
+    background: rgba(10, 16, 26, 0.9);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease;
+}
+
+.camera-card:hover {
+    border-color: rgba(0, 242, 254, 0.4);
+}
+
+.camera-card-header {
+    background: rgba(15, 23, 38, 0.95);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cam-select-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cam-tag {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--neon-cyan);
+}
+
+.cam-select {
+    background: rgba(8, 14, 22, 0.9);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    color: #e2e8f0;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+}
+
+.cam-select:focus {
+    border-color: var(--neon-cyan);
+}
+
+.cam-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.badge-fps {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--neon-cyan);
+    font-weight: 700;
+}
+
+.badge-cuda {
+    background: rgba(0, 230, 118, 0.15);
+    border: 1px solid #00e676;
+    color: #00e676;
+    font-family: var(--font-mono);
+    font-size: 0.60rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 2px;
+}
+
+.badge-thermal {
+    background: rgba(255, 145, 0, 0.15);
+    border: 1px solid #ff9100;
+    color: #ff9100;
+    font-family: var(--font-mono);
+    font-size: 0.60rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 2px;
+}

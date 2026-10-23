@@ -50,36 +50,92 @@
     <!-- Main Command Grid -->
     <main class="command-grid">
         <!-- Left Column: Tactical AI Vision & Detection Feed -->
+        <!-- Left Column: Tactical Multi-Camera Cockpit (Dual Independent Feeds) -->
         <section class="panel panel-vision">
             <div class="panel-header">
                 <div class="panel-title">
                     <span class="hud-bracket">[</span>
-                    3D DEPTH SENSOR VISION [PERCEPTION ENGINE ACTIVE]
+                    TACTICAL DUAL-CAMERA COCKPIT
                     <span class="hud-bracket">]</span>
                 </div>
-                <div class="camera-selectors">
-                    <button class="cam-btn active" title="Camera feed offline in tb3_sandbox. Navigation powered by 360 LiDAR.">3D DEPTH HEATMAP (ACTIVE)</button>
-                    <button class="cam-btn disabled" disabled title="Pending 4-camera UGV hardware model">STEREO (OFFLINE)</button>
-                    <button class="cam-btn disabled" disabled title="Pending 4-camera UGV hardware model">REAR (OFFLINE)</button>
+                <div class="cockpit-layout-pills">
+                    <button class="pill-btn active" id="btn-layout-split" title="Display two cameras side-by-side">🔲 DUAL VIEW</button>
+                    <button class="pill-btn" id="btn-layout-cam1" title="Maximize Viewport 1">🔍 CAM 1</button>
+                    <button class="pill-btn" id="btn-layout-cam2" title="Maximize Viewport 2">🔍 CAM 2</button>
                 </div>
             </div>
 
-            <div class="video-viewport">
-                <img src="/stream/video" id="live-video-feed" alt="Live UGV Camera Stream" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'640\' height=\'480\' viewBox=\'0 0 640 480\'><rect fill=\'%230b1017\' width=\'640\' height=\'480\'/><text fill=\'%2300f2fe\' font-family=\'monospace\' font-size=\'18\' x=\'50%\' y=\'50%\' text-anchor=\'middle\'>CONNECTING TO UGV AI VISION STREAM...</text></svg>'">
-                
-                <!-- Tactical Crosshair & Corner Brackets -->
-                <div class="hud-overlay">
-                    <div class="corner-bracket top-left"></div>
-                    <div class="corner-bracket top-right"></div>
-                    <div class="corner-bracket bottom-left"></div>
-                    <div class="corner-bracket bottom-right"></div>
-                    <div class="hud-crosshair">
-                        <div class="reticle-ring"></div>
-                        <div class="reticle-lines"></div>
+            <!-- Dual Viewport Grid Container -->
+            <div class="multi-camera-container layout-dual" id="multi-camera-container">
+                <!-- Viewport 1: Optical RGB / AI Recon -->
+                <div class="camera-card" id="card-cam-1">
+                    <div class="camera-card-header">
+                        <div class="cam-select-wrapper">
+                            <span class="cam-tag">VIEWPORT 1:</span>
+                            <select class="cam-select" id="select-cam-1">
+                                <option value="optical" selected>CAM 1: OPTICAL RGB / AI RECON</option>
+                                <option value="depth">CAM 2: 3D DEPTH HEATMAP</option>
+                                <option value="stereo">CAM 3: STEREO FORWARD</option>
+                                <option value="rear">CAM 4: REAR RECON</option>
+                            </select>
+                        </div>
+                        <div class="cam-card-meta">
+                            <span class="badge-fps" id="val-cam1-fps">12.0 FPS</span>
+                            <span class="badge-cuda" id="val-cam1-accel">CUDA: RTX 3050</span>
+                        </div>
                     </div>
-                    <div class="hud-target-lock" id="hud-target-lock">
-                        <span class="lock-label" id="val-feed-status">3D DEPTH PERCEPTION</span>
-                        <span class="lock-fps" id="val-fps">LIVE</span>
+                    <div class="video-viewport">
+                        <img src="/stream/optical" id="feed-cam-1" alt="Optical RGB Stream" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'640\' height=\'480\' viewBox=\'0 0 640 480\'><rect fill=\'%230b1017\' width=\'640\' height=\'480\'/><text fill=\'%2300e676\' font-family=\'monospace\' font-size=\'16\' x=\'50%\' y=\'50%\' text-anchor=\'middle\'>OPTICAL RGB / AI RECON STREAM ACTIVE</text></svg>'">
+                        <div class="hud-overlay">
+                            <div class="corner-bracket top-left"></div>
+                            <div class="corner-bracket top-right"></div>
+                            <div class="corner-bracket bottom-left"></div>
+                            <div class="corner-bracket bottom-right"></div>
+                            <div class="hud-crosshair">
+                                <div class="reticle-ring"></div>
+                                <div class="reticle-lines"></div>
+                            </div>
+                            <div class="hud-target-lock">
+                                <span class="lock-label" id="val-cam1-label">OPTICAL AI RECON</span>
+                                <span class="lock-fps" id="val-cam1-hud-fps">ONLINE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Viewport 2: 3D Depth Perception Thermal Heatmap -->
+                <div class="camera-card" id="card-cam-2">
+                    <div class="camera-card-header">
+                        <div class="cam-select-wrapper">
+                            <span class="cam-tag">VIEWPORT 2:</span>
+                            <select class="cam-select" id="select-cam-2">
+                                <option value="depth" selected>CAM 2: 3D DEPTH HEATMAP</option>
+                                <option value="optical">CAM 1: OPTICAL RGB / AI RECON</option>
+                                <option value="stereo">CAM 3: STEREO FORWARD</option>
+                                <option value="rear">CAM 4: REAR RECON</option>
+                            </select>
+                        </div>
+                        <div class="cam-card-meta">
+                            <span class="badge-fps" id="val-cam2-fps">12.0 FPS</span>
+                            <span class="badge-thermal">THERMAL: TURBO</span>
+                        </div>
+                    </div>
+                    <div class="video-viewport">
+                        <img src="/stream/depth" id="feed-cam-2" alt="3D Depth Stream" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'640\' height=\'480\' viewBox=\'0 0 640 480\'><rect fill=\'%230b1017\' width=\'640\' height=\'480\'/><text fill=\'%2300f2fe\' font-family=\'monospace\' font-size=\'16\' x=\'50%\' y=\'50%\' text-anchor=\'middle\'>3D DEPTH PERCEPTION STREAM ACTIVE</text></svg>'">
+                        <div class="hud-overlay">
+                            <div class="corner-bracket top-left"></div>
+                            <div class="corner-bracket top-right"></div>
+                            <div class="corner-bracket bottom-left"></div>
+                            <div class="corner-bracket bottom-right"></div>
+                            <div class="hud-crosshair">
+                                <div class="reticle-ring"></div>
+                                <div class="reticle-lines"></div>
+                            </div>
+                            <div class="hud-target-lock">
+                                <span class="lock-label" id="val-cam2-label">3D DEPTH PERCEPTION</span>
+                                <span class="lock-fps" id="val-cam2-hud-fps">ONLINE</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
