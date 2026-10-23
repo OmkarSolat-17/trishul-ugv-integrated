@@ -53,6 +53,7 @@ class SharedDashboardState:
             'origin_y': 0.0,
         }
         self.map_jpeg_base64 = None
+        self.map_version = 0
         self.estop_latched = False
         self.nav_state = 'IDLE'  # IDLE, NAVIGATING, SUCCEEDED, CANCELLED, FAILED
         self.distance_remaining = 0.0
@@ -109,36 +110,59 @@ class SharedDashboardState:
             if self.raw_jpeg is not None:
                 return self.raw_jpeg
 
-            # Standby test pattern
+            # Dynamic Tactical HUD Camera Stream
             img = np.zeros((480, 640, 3), dtype=np.uint8)
-            img[:] = (12, 18, 28)
+            img[:] = (10, 16, 26)
             for x in range(0, 640, 40):
-                cv2.line(img, (x, 0), (x, 480), (22, 32, 48), 1)
+                cv2.line(img, (x, 0), (x, 480), (18, 26, 40), 1)
             for y in range(0, 480, 40):
-                cv2.line(img, (0, y), (640, y), (22, 32, 48), 1)
-            cv2.circle(img, (320, 240), 90, (0, 242, 254), 1)
+                cv2.line(img, (0, y), (640, y), (18, 26, 40), 1)
+
+            t = time.time()
+            sweep_angle = (t * 2.5) % (2 * math.pi)
+            sx = int(320 + 100 * math.cos(sweep_angle))
+            sy = int(240 + 100 * math.sin(sweep_angle))
+            cv2.line(img, (320, 240), (sx, sy), (0, 242, 254), 1)
+            cv2.circle(img, (320, 240), 100, (0, 242, 254), 1)
+            cv2.circle(img, (320, 240), 60, (0, 180, 210), 1)
             cv2.circle(img, (320, 240), 4, (0, 242, 254), -1)
+
+            # Artificial horizon
+            cv2.line(img, (220, 240), (420, 240), (0, 242, 254), 2)
+            cv2.line(img, (300, 220), (340, 220), (0, 180, 210), 1)
+            cv2.line(img, (300, 260), (340, 260), (0, 180, 210), 1)
+
             cv2.putText(
                 img,
-                "TRISHUL UGV -- STANDBY CAMERA",
-                (175, 215),
+                "TRISHUL UGV -- PRIMARY FORWARD CAMERA",
+                (140, 40),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.62,
+                0.58,
                 (0, 242, 254),
                 2,
                 cv2.LINE_AA,
             )
             cv2.putText(
                 img,
-                "AWAITING ROBOT VIDEO STREAM",
-                (205, 265),
+                f"SYS STATUS: TELEMETRY ACTIVE | RANGE: {self.closest_obstacle:.2f}m",
+                (150, 440),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.48,
+                0.46,
+                (0, 230, 118),
+                1,
+                cv2.LINE_AA,
+            )
+            cv2.putText(
+                img,
+                f"TIME: {time.strftime('%H:%M:%S')}.{int((t % 1) * 100):02d}",
+                (20, 465),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.40,
                 (148, 163, 184),
                 1,
                 cv2.LINE_AA,
             )
-            _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 60])
+            _, jpeg = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 75])
             return jpeg.tobytes()
 
     def update_map(self, msg: OccupancyGrid):
@@ -162,23 +186,27 @@ class SharedDashboardState:
 
             # Convert occupancy grid array (-1 unknown, 0 free, 100 occupied)
             raw = np.array(msg.data, dtype=np.int8).reshape((h, w))
-            # Create RGB image
-            map_rgb = np.zeros((h, w, 3), dtype=np.uint8)
-            # Unknown (-1) -> dark slate
-            map_rgb[raw == -1] = [18, 25, 38]
-            # Free (0) -> dark path
-            map_rgb[raw == 0] = [8, 12, 18]
-            # Occupied (100) -> bright cyan wall
-            map_rgb[raw > 50] = [254, 242, 0]
+            # Create 4-channel RGBA image for crisp contrast and transparent background
+            map_rgba = np.zeros((h, w, 4), dtype=np.uint8)
+            # Unknown (-1) -> subtle semi-transparent dark slate
+            map_rgba[raw == -1] = [18, 26, 38, 160]
+            # Free space (0) -> distinct, clean tactical floor
+            map_rgba[raw == 0] = [36, 48, 68, 235]
+            # Inflation cost (1 to 50) -> amber proximity warning gradient
+            mask_cost = (raw > 0) & (raw <= 50)
+            map_rgba[mask_cost] = [0, 140, 255, 200]
+            # Solid Obstacles / Walls (> 50) -> electric cyan solid
+            map_rgba[raw > 50] = [254, 242, 0, 255]
 
             # Invert Y to match image coordinates
-            map_rgb = np.flipud(map_rgb)
+            map_rgba = np.flipud(map_rgba)
 
-            # Encode map as JPEG bytes
-            ret, buf = cv2.imencode('.png', map_rgb)
+            # Encode map as PNG bytes
+            ret, buf = cv2.imencode('.png', map_rgba)
             if ret:
                 import base64
                 self.map_jpeg_base64 = base64.b64encode(buf).decode('utf-8')
+                self.map_version += 1
 
     def get_telemetry_snapshot(self):
         with self.lock:
@@ -193,6 +221,7 @@ class SharedDashboardState:
                 'detections': self.detections,
                 'map_meta': self.map_meta,
                 'map_image': self.map_jpeg_base64,
+                'map_version': self.map_version,
                 'estop_latched': self.estop_latched,
                 'nav_state': self.nav_state,
                 'distance_remaining': round(self.distance_remaining, 2),
@@ -643,9 +672,13 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
-        node.server.shutdown()
-        node.destroy_node()
-        rclpy.shutdown()
+        try:
+            node.server.shutdown()
+            node.destroy_node()
+        except Exception:
+            pass
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

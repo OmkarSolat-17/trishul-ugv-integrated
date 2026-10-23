@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         connected: false,
         zoomScale: 38, // Pixels per meter
         activeFeed: 'combined',
+        lastMapVersion: -1,
     };
 
     // DOM Elements
@@ -141,16 +142,23 @@ document.addEventListener('DOMContentLoaded', () => {
             state.laserPoints = data.laser_points || [];
             state.plannedPath = data.path || [];
 
-            // Map Image Synchronization
+            // Map Image Synchronization (Only reload when map_version updates!)
             if (data.map_image && data.map_meta) {
                 state.mapMeta = data.map_meta;
+                const mapVer = data.map_version !== undefined ? data.map_version : 1;
+
                 if (!state.mapImageObj) {
                     state.mapImageObj = new Image();
                     state.mapImageObj.onload = () => {
                         state.mapImageLoaded = true;
+                        logEvent('MAP', `Arena OccupancyGrid loaded (${state.mapMeta.width}x${state.mapMeta.height} @ ${state.mapMeta.resolution}m)`);
                     };
                 }
-                state.mapImageObj.src = 'data:image/png;base64,' + data.map_image;
+
+                if (state.lastMapVersion !== mapVer) {
+                    state.lastMapVersion = mapVer;
+                    state.mapImageObj.src = 'data:image/png;base64,' + data.map_image;
+                }
             }
 
             // Update DOM Values
@@ -258,11 +266,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return { x: sx, y: sy };
         }
 
-        // 1. Draw Real SLAM OccupancyGrid Map
-        if (state.mapImageLoaded && state.mapImageObj && state.mapMeta && state.mapMeta.width > 0) {
-            ctx.save();
+        // 1. Draw Real SLAM OccupancyGrid Map & Arena Boundaries
+        if (state.mapMeta && state.mapMeta.width > 0) {
             const meta = state.mapMeta;
-            // Top-left world coordinate of the map (column 0 = origin_x, top row = origin_y + height * resolution)
             const mapTopWorldX = meta.origin_x;
             const mapTopWorldY = meta.origin_y + meta.height * meta.resolution;
 
@@ -270,9 +276,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const mapScreenWidth = meta.width * meta.resolution * scale;
             const mapScreenHeight = meta.height * meta.resolution * scale;
 
-            ctx.globalAlpha = 0.90;
-            ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(state.mapImageObj, spTopLeft.x, spTopLeft.y, mapScreenWidth, mapScreenHeight);
+            // Render Map Tiles
+            if (state.mapImageLoaded && state.mapImageObj) {
+                ctx.save();
+                ctx.globalAlpha = 0.95;
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(state.mapImageObj, spTopLeft.x, spTopLeft.y, mapScreenWidth, mapScreenHeight);
+                ctx.restore();
+            }
+
+            // Render Tactical Arena Boundary Frame
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 6]);
+            ctx.strokeRect(spTopLeft.x, spTopLeft.y, mapScreenWidth, mapScreenHeight);
+
+            // Arena Tag
+            ctx.fillStyle = 'rgba(0, 242, 254, 0.6)';
+            ctx.font = '10px monospace';
+            ctx.fillText(`ARENA [${(meta.width * meta.resolution).toFixed(0)}m x ${(meta.height * meta.resolution).toFixed(0)}m]`, spTopLeft.x + 8, spTopLeft.y + 14);
             ctx.restore();
         }
 
@@ -412,8 +435,26 @@ document.addEventListener('DOMContentLoaded', () => {
         // Invert worldToScreen:
         // sx = cx + (wx - pose.x) * scale => wx = pose.x + (sx - cx) / scale
         // sy = cy - (wy - pose.y) * scale => wy = pose.y - (sy - cy) / scale
-        const goalX = state.pose.x + (clickX - cx) / scale;
-        const goalY = state.pose.y - (clickY - cy) / scale;
+        let goalX = state.pose.x + (clickX - cx) / scale;
+        let goalY = state.pose.y - (clickY - cy) / scale;
+
+        // Strictly clamp goal inside valid arena boundaries
+        if (state.mapMeta && state.mapMeta.width > 0) {
+            const meta = state.mapMeta;
+            const minX = meta.origin_x + 0.4;
+            const maxX = meta.origin_x + meta.width * meta.resolution - 0.4;
+            const minY = meta.origin_y + 0.4;
+            const maxY = meta.origin_y + meta.height * meta.resolution - 0.4;
+
+            const origX = goalX;
+            const origY = goalY;
+            goalX = Math.max(minX, Math.min(maxX, goalX));
+            goalY = Math.max(minY, Math.min(maxY, goalY));
+
+            if (goalX !== origX || goalY !== origY) {
+                logEvent('MAP', `Click auto-snapped to arena boundary: (${goalX.toFixed(2)}, ${goalY.toFixed(2)})`);
+            }
+        }
 
         // Calculate direct heading angle to target
         const dx = goalX - state.pose.x;
