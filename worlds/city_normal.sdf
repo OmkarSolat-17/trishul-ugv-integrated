@@ -1,9 +1,31 @@
 <sdf version='1.10'>
   <world name='trishul_city'>
-    <physics name='1ms' type='ignored'>
-      <max_step_size>0.001</max_step_size>
+    <plugin
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+      filename="gz-sim-user-commands-system"
+      name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin
+      filename="gz-sim-sensors-system"
+      name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin
+      filename="gz-sim-imu-system"
+      name="gz::sim::systems::Imu">
+    </plugin>
+
+    <physics name='4ms' type='ignored'>
+      <max_step_size>0.005</max_step_size>
       <real_time_factor>1</real_time_factor>
-      <real_time_update_rate>1000</real_time_update_rate>
+      <real_time_update_rate>200</real_time_update_rate>
     </physics>
     <gravity>0 0 -9.8000000000000007</gravity>
     <magnetic_field>5.5644999999999998e-06 2.2875799999999999e-05 -4.2388400000000002e-05</magnetic_field>
@@ -1699,7 +1721,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>13.048876762390135 13.061484336853027 -0.021312600001692772 0 0 1.5694200991144709</pose>
+      <pose>13.048876762390135 13.061484336853027 0 0 0 1.5694200991144709</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1'>
@@ -1793,7 +1815,7 @@
           </material>
         </visual>
       </link>
-      <pose>13.136736527740979 -13.011269807206972 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.136736527740979 -13.011269807206972 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='sidewalk_2_1'>
@@ -2310,6 +2332,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -2324,6 +2347,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -2507,7 +2531,7 @@
           </material>
         </visual>
       </link>
-      <pose>13.014524068882139 -33.033448772070358 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.014524068882139 -33.033448772070358 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_1'>
@@ -2601,7 +2625,7 @@
           </material>
         </visual>
       </link>
-      <pose>13.057053412323206 -52.863364738926357 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.057053412323206 -52.863364738926357 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_2'>
@@ -2695,7 +2719,7 @@
           </material>
         </visual>
       </link>
-      <pose>12.962058118897566 -72.782626419937486 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>12.962058118897566 -72.782626419937486 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_3'>
@@ -2789,7 +2813,7 @@
           </material>
         </visual>
       </link>
-      <pose>13.047209307060681 33.054310617885058 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.047209307060681 33.054310617885058 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_4'>
@@ -2883,7 +2907,7 @@
           </material>
         </visual>
       </link>
-      <pose>13.061929652983727 52.917434520652492 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.061929652983727 52.917434520652492 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5'>
@@ -2977,7 +3001,7 @@
           </material>
         </visual>
       </link>
-      <pose>13.123696572423178 72.847517052496727 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.123696572423178 72.847517052496727 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_1_1'>
@@ -3635,7 +3659,7 @@
           </material>
         </visual>
       </link>
-      <pose>78.460701501684397 72.912640716680329 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.460701501684397 72.912640716680329 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_2'>
@@ -3729,7 +3753,7 @@
           </material>
         </visual>
       </link>
-      <pose>78.443719484842887 53.063787926284434 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.443719484842887 53.063787926284434 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3'>
@@ -3823,7 +3847,7 @@
           </material>
         </visual>
       </link>
-      <pose>78.609738581934707 33.536776205864321 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.609738581934707 33.536776205864321 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_1_7'>
@@ -4105,7 +4129,7 @@
           </material>
         </visual>
       </link>
-      <pose>78.403750886944408 13.81432769228207 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.403750886944408 13.81432769228207 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3_2'>
@@ -4199,7 +4223,7 @@
           </material>
         </visual>
       </link>
-      <pose>78.023805597874116 -12.792881615484243 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.023805597874116 -12.792881615484243 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3_3'>
@@ -4293,7 +4317,7 @@
           </material>
         </visual>
       </link>
-      <pose>78.063355119815625 -32.695366467213454 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.063355119815625 -32.695366467213454 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3_4'>
@@ -4387,7 +4411,7 @@
           </material>
         </visual>
       </link>
-      <pose>78.035293676555938 -52.381518510922518 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.035293676555938 -52.381518510922518 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3_5'>
@@ -4481,13 +4505,14 @@
           </material>
         </visual>
       </link>
-      <pose>78.030629246819345 -72.316402797817091 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.030629246819345 -72.316402797817091 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='side_road_1'>
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4502,6 +4527,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4520,6 +4546,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4534,6 +4561,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4552,6 +4580,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4566,6 +4595,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4584,6 +4614,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4598,6 +4629,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4616,6 +4648,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4630,6 +4663,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -6335,7 +6369,7 @@
           </material>
         </visual>
       </link>
-      <pose>-52.46538632169527 -12.460106172755324 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.46538632169527 -12.460106172755324 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_7'>
@@ -6429,7 +6463,7 @@
           </material>
         </visual>
       </link>
-      <pose>-52.455895787219866 -32.210289446524683 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.455895787219866 -32.210289446524683 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_8'>
@@ -6523,7 +6557,7 @@
           </material>
         </visual>
       </link>
-      <pose>-52.407575626262016 -51.87584505739413 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.407575626262016 -51.87584505739413 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_9'>
@@ -6617,7 +6651,7 @@
           </material>
         </visual>
       </link>
-      <pose>-52.385566725694041 -71.673693792558481 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.385566725694041 -71.673693792558481 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_10'>
@@ -6711,7 +6745,7 @@
           </material>
         </visual>
       </link>
-      <pose>-52.758859020575528 12.762303507894677 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.758859020575528 12.762303507894677 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_11'>
@@ -6805,7 +6839,7 @@
           </material>
         </visual>
       </link>
-      <pose>-52.692998506222679 32.629427554593498 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.692998506222679 32.629427554593498 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_12'>
@@ -6899,7 +6933,7 @@
           </material>
         </visual>
       </link>
-      <pose>-52.634634970215672 52.341616007623472 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.634634970215672 52.341616007623472 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_13'>
@@ -6993,7 +7027,7 @@
           </material>
         </visual>
       </link>
-      <pose>-52.4790036833448 72.307089880878465 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.4790036833448 72.307089880878465 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='left_road_extension_1_1'>
@@ -7440,6 +7474,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -7454,6 +7489,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -7472,6 +7508,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -7486,6 +7523,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -7504,6 +7542,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -7518,6 +7557,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -16378,5 +16418,10 @@
         <falloff>0</falloff>
       </spot>
     </light>
-  </world>
+      <include>
+      <uri>model://trishul_4wd_ugv</uri>
+      <name>trishul_4wd_ugv</name>
+      <pose>0 0 0.3 0 0 0</pose>
+    </include>
+</world>
 </sdf>

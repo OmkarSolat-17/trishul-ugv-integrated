@@ -4,6 +4,8 @@ from geometry_msgs.msg import Twist
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
+from std_msgs.msg import String
+import json
 
 
 class SensorMonitor(Node):
@@ -28,8 +30,32 @@ class SensorMonitor(Node):
             10
         )
 
+        self.yolo_sub = self.create_subscription(
+            String,
+            '/ugv/yolo_decision',
+            self.yolo_decision_callback,
+            10
+        )
+
         self.in_danger_state = False
         self.get_logger().info('Trishul active sensor monitor & safety controller started')
+
+    def yolo_decision_callback(self, msg):
+        try:
+            data = json.loads(msg.data)
+            action = data.get('action', 'CLEAR')
+            target = data.get('target', 'NONE')
+            dist = float(data.get('distance', 10.0))
+            if action == 'EMERGENCY_STOP' and dist < 1.1:
+                self.get_logger().error(f'[SAFETY EXECUTIVE] Vision-AI Emergency Stop Engaged: {target.upper()} at {dist:.2f}m in path!')
+                stop_msg = Twist()
+                self.cmd_vel_pub.publish(stop_msg)
+                self.in_danger_state = True
+            elif action == 'YIELD_AND_SLOW':
+                spd = data.get('speed_limit', 0.8)
+                self.get_logger().warn(f'[SAFETY EXECUTIVE] Vision-AI Yield Active: {target.upper()} at {dist:.2f}m -> Throttling to {spd} m/s')
+        except Exception:
+            pass
 
     def scan_callback(self, msg):
         valid_readings = [

@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <model name="bridge">
+    <static>true</static>
+    <link name="bridge_link">
+      <!-- Main Road Deck (Flush with connecting road at Z=0.0400m) -->
+      <collision name="deck_collision">
+        <pose>0 0 0.02973275 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>18.0 8.0 0.04</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction><ode/></friction>
+          <bounce/>
+          <contact/>
+        </surface>
+      </collision>
+      <visual name="deck_visual">
+        <pose>0 0 0.02973275 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>18.0 8.0 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.18 0.18 1.0</ambient>
+          <diffuse>0.18 0.18 0.18 1.0</diffuse>
+        </material>
+      </visual>
+      <!-- Center Dashed Yellow Lines -->
+      <visual name="center_line_1">
+        <pose>-5.0 0 0.05073 0 0 0</pose>
+        <geometry><box><size>2.5 0.12 0.002</size></box></geometry>
+        <material><ambient>1 0.9 0.55 1</ambient><diffuse>1 0.9 0.55 1</diffuse></material>
+      </visual>
+      <visual name="center_line_2">
+        <pose>0.0 0 0.05073 0 0 0</pose>
+        <geometry><box><size>2.5 0.12 0.002</size></box></geometry>
+        <material><ambient>1 0.9 0.55 1</ambient><diffuse>1 0.9 0.55 1</diffuse></material>
+      </visual>
+      <visual name="center_line_3">
+        <pose>5.0 0 0.05073 0 0 0</pose>
+        <geometry><box><size>2.5 0.12 0.002</size></box></geometry>
+        <material><ambient>1 0.9 0.55 1</ambient><diffuse>1 0.9 0.55 1</diffuse></material>
+      </visual>
+      <!-- North Sidewalk & Guardrail -->
+      <collision name="north_sidewalk_collision">
+        <pose>0 3.5 0.09 0 0 0</pose>
+        <geometry><box><size>18.0 1.0 0.10</size></box></geometry>
+      </collision>
+      <visual name="north_sidewalk_visual">
+        <pose>0 3.5 0.09 0 0 0</pose>
+        <geometry><box><size>18.0 1.0 0.10</size></box></geometry>
+        <material><ambient>0.65 0.65 0.65 1</ambient><diffuse>0.65 0.65 0.65 1</diffuse></material>
+      </visual>
+      <collision name="north_guardrail_collision">
+        <pose>0 3.9 0.45 0 0 0</pose>
+        <geometry><box><size>18.0 0.2 0.7</size></box></geometry>
+      </collision>
+      <visual name="north_guardrail_visual">
+        <pose>0 3.9 0.45 0 0 0</pose>
+        <geometry><box><size>18.0 0.2 0.7</size></box></geometry>
+        <material><ambient>0.4 0.45 0.5 1</ambient><diffuse>0.45 0.5 0.55 1</diffuse></material>
+      </visual>
+      <!-- South Sidewalk & Guardrail -->
+      <collision name="south_sidewalk_collision">
+        <pose>0 -3.5 0.09 0 0 0</pose>
+        <geometry><box><size>18.0 1.0 0.10</size></box></geometry>
+      </collision>
+      <visual name="south_sidewalk_visual">
+        <pose>0 -3.5 0.09 0 0 0</pose>
+        <geometry><box><size>18.0 1.0 0.10</size></box></geometry>
+        <material><ambient>0.65 0.65 0.65 1</ambient><diffuse>0.65 0.65 0.65 1</diffuse></material>
+      </visual>
+      <collision name="south_guardrail_collision">
+        <pose>0 -3.9 0.45 0 0 0</pose>
+        <geometry><box><size>18.0 0.2 0.7</size></box></geometry>
+      </collision>
+      <visual name="south_guardrail_visual">
+        <pose>0 -3.9 0.45 0 0 0</pose>
+        <geometry><box><size>18.0 0.2 0.7</size></box></geometry>
+        <material><ambient>0.4 0.45 0.5 1</ambient><diffuse>0.45 0.5 0.55 1</diffuse></material>
+      </visual>
+      <!-- Support Piers underneath -->
+      <visual name="pier_east">
+        <pose>6.0 0 -0.5 0 0 0</pose>
+        <geometry><box><size>1.5 7.0 1.0</size></box></geometry>
+        <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+      </visual>
+      <visual name="pier_west">
+        <pose>-6.0 0 -0.5 0 0 0</pose>
+        <geometry><box><size>1.5 7.0 1.0</size></box></geometry>
+        <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

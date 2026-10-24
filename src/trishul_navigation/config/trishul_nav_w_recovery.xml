@@ -1,0 +1,51 @@
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <!--
+    TRISHUL UGV High-Mobility Recovery Behavior Tree
+    Designed specifically for 4WD Skid-Steer urban terrain traversal:
+    1. Smooth 1 Hz SmacPlanner2D global replanning with dynamic costmap feedback.
+    2. Instant Curb / Terrain Step Evasion:
+       When blocked by a vertical curb or elevation step, immediately backs up 0.80m,
+       rotates 1.2 rad (~69 degrees) to face the open corridor, and replans an alternate route.
+  -->
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="6" name="NavigateRecovery">
+      <PipelineSequence name="NavigateWithReplanning">
+        <ControllerSelector selected_controller="{selected_controller}" default_controller="FollowPath" topic_name="controller_selector"/>
+        <PlannerSelector selected_planner="{selected_planner}" default_planner="GridBased" topic_name="planner_selector"/>
+        <RateController hz="1.0">
+          <RecoveryNode number_of_retries="1" name="ComputePathToPose">
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
+            <Sequence>
+              <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode number_of_retries="1" name="FollowPath">
+          <FollowPath path="{path}" controller_id="{selected_controller}" error_code_id="{follow_path_error_code}"/>
+          <Sequence>
+            <WouldAControllerRecoveryHelp error_code="{follow_path_error_code}"/>
+            <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+          </Sequence>
+        </RecoveryNode>
+      </PipelineSequence>
+      <Sequence>
+        <Fallback>
+          <WouldAControllerRecoveryHelp error_code="{follow_path_error_code}"/>
+          <WouldAPlannerRecoveryHelp error_code="{compute_path_error_code}"/>
+        </Fallback>
+        <ReactiveFallback name="RecoveryFallback">
+          <GoalUpdated/>
+          <Sequence name="CurbEvasionSequence">
+            <!-- 1. Back up 0.8m away from curb -->
+            <BackUp backup_dist="0.80" backup_speed="0.30" error_code_id="{backup_code_id}"/>
+            <!-- 2. Rotate away from obstacle corridor -->
+            <Spin spin_dist="1.20" error_code_id="{spin_error_code}"/>
+            <!-- 3. Refresh costmap to unblock alternative paths -->
+            <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
+          </Sequence>
+        </ReactiveFallback>
+      </Sequence>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>

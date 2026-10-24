@@ -1,0 +1,461 @@
+<?xml version='1.0' encoding='utf-8'?>
+<sdf version="1.9">
+  <model name="trishul_4wd_ugv">
+    <link name="base_footprint"/>
+    <link name="base_link">
+      <pose>0 0 0.38 0 0 0</pose>
+    </link>
+    <joint name="base_footprint_joint" type="fixed">
+      <parent>base_footprint</parent>
+      <child>base_link</child>
+    </joint>
+    <joint name="base_link_chassis_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>chassis</child>
+    </joint>
+    <self_collide>false</self_collide>
+    <static>false</static>
+    <link name="chassis">
+      <pose>0 0 0.38 0 0 0</pose>
+      <inertial>
+        <pose>0 0 -0.20 0 0 0</pose>
+        <mass>35</mass>
+        <inertia>
+          <ixx>1.2</ixx>
+          <iyy>1.8</iyy>
+          <izz>2.2</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="chassis_collision">
+        <geometry>
+          <box>
+            <size>0.70 0.50 0.16</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="chassis_visual">
+        <geometry>
+          <box>
+            <size>0.70 0.50 0.16</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.14 0.18 0.22 1</ambient>
+          <diffuse>0.20 0.26 0.32 1</diffuse>
+        </material>
+      </visual>
+      <collision name="top_collision">
+        <pose>0 0 0.12 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.30 0.26 0.08</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="top_visual">
+        <pose>0 0 0.12 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.30 0.26 0.08</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.20 0.22 0.25 1</ambient>
+          <diffuse>0.28 0.30 0.35 1</diffuse>
+        </material>
+      </visual>
+      <sensor name="intel_realsense_r200_rgb" type="camera">
+        <pose>0.32 0 0.12 0 0 0</pose>
+        <always_on>true</always_on>
+        <update_rate>15</update_rate>
+        <visualize>false</visualize>
+        <topic>/camera/color/image_raw</topic>
+        <camera_info_topic>/camera/color/camera_info</camera_info_topic>
+        <gz_frame_id>camera_rgb_frame</gz_frame_id>
+        <camera name="realsense_rgb_camera">
+          <horizontal_fov>1.047</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>100.0</far>
+          </clip>
+        </camera>
+      </sensor>
+      <sensor name="intel_realsense_r200_depth" type="depth">
+        <pose>0.32 0 0.12 0 0 0</pose>
+        <always_on>true</always_on>
+        <update_rate>15</update_rate>
+        <visualize>false</visualize>
+        <topic>/camera/image_raw</topic>
+        <camera_info_topic>/camera/camera_info</camera_info_topic>
+        <gz_frame_id>camera_depth_frame</gz_frame_id>
+        <camera name="realsense_depth_camera">
+          <horizontal_fov>1.047</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>15.0</far>
+          </clip>
+        </camera>
+      </sensor>
+      <sensor name="rear_recon_camera" type="camera">
+        <pose>-0.38 0 0.12 0 0 3.14159</pose>
+        <always_on>true</always_on>
+        <update_rate>15</update_rate>
+        <visualize>false</visualize>
+        <topic>/camera/rear/image_raw</topic>
+        <camera_info_topic>/camera/rear/camera_info</camera_info_topic>
+        <gz_frame_id>base_footprint</gz_frame_id>
+        <camera name="rear_recon_camera">
+          <horizontal_fov>1.396</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>50.0</far>
+          </clip>
+        </camera>
+      </sensor>
+      <sensor name="front_lidar" type="gpu_lidar">
+        <pose>0.18 0 0.20 0 0 0</pose>
+        <always_on>true</always_on>
+        <update_rate>8</update_rate>
+        <visualize>true</visualize>
+        <topic>/scan</topic>
+        <gz_frame_id>base_scan</gz_frame_id>
+        <lidar>
+          <scan>
+            <horizontal>
+              <samples>360</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14159</min_angle>
+              <max_angle>3.14159</max_angle>
+            </horizontal>
+          </scan>
+          <range>
+            <min>0.25</min>
+            <max>20.0</max>
+            <resolution>0.01</resolution>
+          </range>
+        </lidar>
+      </sensor>
+      <sensor name="imu" type="imu">
+        <pose>0 0 0 0 0 0</pose>
+        <always_on>true</always_on>
+        <update_rate>100</update_rate>
+        <topic>/imu</topic>
+        <gz_frame_id>imu_link</gz_frame_id>
+      </sensor>
+    <visual name="front_bumper"><pose>0.37 0 -0.02 0 0 0</pose><geometry><box><size>0.08 0.48 0.08</size></box></geometry><material><ambient>0.08 0.08 0.08 1</ambient><diffuse>0.12 0.12 0.12 1</diffuse></material></visual><visual name="rear_bumper"><pose>-0.37 0 -0.02 0 0 0</pose><geometry><box><size>0.08 0.48 0.08</size></box></geometry><material><ambient>0.08 0.08 0.08 1</ambient><diffuse>0.12 0.12 0.12 1</diffuse></material></visual><visual name="headlight_left"><pose>0.36 0.17 0.04 0 1.5707963 0</pose><geometry><cylinder><radius>0.04</radius><length>0.02</length></cylinder></geometry><material><ambient>1.0 1.0 0.8 1</ambient><diffuse>1.0 1.0 0.9 1</diffuse><emissive>0.9 0.9 0.7 1</emissive></material></visual><visual name="headlight_right"><pose>0.36 -0.17 0.04 0 1.5707963 0</pose><geometry><cylinder><radius>0.04</radius><length>0.02</length></cylinder></geometry><material><ambient>1.0 1.0 0.8 1</ambient><diffuse>1.0 1.0 0.9 1</diffuse><emissive>0.9 0.9 0.7 1</emissive></material></visual><visual name="taillight_left"><pose>-0.36 0.17 0.04 0 1.5707963 0</pose><geometry><cylinder><radius>0.03</radius><length>0.02</length></cylinder></geometry><material><ambient>0.8 0.05 0.05 1</ambient><diffuse>0.9 0.1 0.1 1</diffuse><emissive>0.8 0.02 0.02 1</emissive></material></visual><visual name="taillight_right"><pose>-0.36 -0.17 0.04 0 1.5707963 0</pose><geometry><cylinder><radius>0.03</radius><length>0.02</length></cylinder></geometry><material><ambient>0.8 0.05 0.05 1</ambient><diffuse>0.9 0.1 0.1 1</diffuse><emissive>0.8 0.02 0.02 1</emissive></material></visual><visual name="roll_bar_left"><pose>0 0.22 0.12 0 0 0</pose><geometry><box><size>0.50 0.03 0.12</size></box></geometry><material><ambient>0.10 0.10 0.10 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual><visual name="roll_bar_right"><pose>0 -0.22 0.12 0 0 0</pose><geometry><box><size>0.50 0.03 0.12</size></box></geometry><material><ambient>0.10 0.10 0.10 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual><visual name="sensor_turret_base"><pose>0.18 0 0.10 0 0 0</pose><geometry><cylinder><radius>0.06</radius><length>0.08</length></cylinder></geometry><material><ambient>0.18 0.18 0.20 1</ambient><diffuse>0.25 0.25 0.28 1</diffuse></material></visual></link>
+    <link name="left_front_wheel">
+      <pose>0.23 0.30 0.20 1.5707963 0 0</pose>
+      <inertial>
+        <mass>2</mass>
+        <inertia>
+          <ixx>0.015</ixx>
+          <iyy>0.015</iyy>
+          <izz>0.025</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="c">
+        <geometry>
+          <sphere>
+            <radius>0.20</radius>
+          </sphere>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>1.0</mu2>
+              <slip1>0.035</slip1>
+              <slip2>0.0</slip2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+            <bullet>
+              <friction>1.0</friction>
+              <friction2>1.0</friction2>
+              <rolling_friction>0.1</rolling_friction>
+            </bullet>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>100.0</kd>
+              <min_depth>0.005</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name="v">
+        <geometry>
+          <cylinder>
+            <radius>0.20</radius>
+            <length>0.10</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.08 0.08 0.08 1</ambient>
+          <diffuse>0.12 0.12 0.12 1</diffuse>
+        </material>
+      </visual>
+    <visual name="rim"><geometry><cylinder><radius>0.12</radius><length>0.102</length></cylinder></geometry><material><ambient>0.45 0.48 0.52 1</ambient><diffuse>0.60 0.65 0.70 1</diffuse></material></visual><visual name="hubcap"><geometry><cylinder><radius>0.045</radius><length>0.106</length></cylinder></geometry><material><ambient>0.90 0.55 0.10 1</ambient><diffuse>0.95 0.60 0.15 1</diffuse></material></visual></link>
+    <link name="right_front_wheel">
+      <pose>0.23 -0.30 0.20 1.5707963 0 0</pose>
+      <inertial>
+        <mass>2</mass>
+        <inertia>
+          <ixx>0.015</ixx>
+          <iyy>0.015</iyy>
+          <izz>0.025</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="c">
+        <geometry>
+          <sphere>
+            <radius>0.20</radius>
+          </sphere>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>1.0</mu2>
+              <slip1>0.035</slip1>
+              <slip2>0.0</slip2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+            <bullet>
+              <friction>1.0</friction>
+              <friction2>1.0</friction2>
+              <rolling_friction>0.1</rolling_friction>
+            </bullet>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>100.0</kd>
+              <min_depth>0.005</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name="v">
+        <geometry>
+          <cylinder>
+            <radius>0.20</radius>
+            <length>0.10</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.08 0.08 0.08 1</ambient>
+          <diffuse>0.12 0.12 0.12 1</diffuse>
+        </material>
+      </visual>
+    <visual name="rim"><geometry><cylinder><radius>0.12</radius><length>0.102</length></cylinder></geometry><material><ambient>0.45 0.48 0.52 1</ambient><diffuse>0.60 0.65 0.70 1</diffuse></material></visual><visual name="hubcap"><geometry><cylinder><radius>0.045</radius><length>0.106</length></cylinder></geometry><material><ambient>0.90 0.55 0.10 1</ambient><diffuse>0.95 0.60 0.15 1</diffuse></material></visual></link>
+    <link name="left_rear_wheel">
+      <pose>-0.23 0.30 0.20 1.5707963 0 0</pose>
+      <inertial>
+        <mass>2</mass>
+        <inertia>
+          <ixx>0.015</ixx>
+          <iyy>0.015</iyy>
+          <izz>0.025</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="c">
+        <geometry>
+          <sphere>
+            <radius>0.20</radius>
+          </sphere>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>1.0</mu2>
+              <slip1>0.035</slip1>
+              <slip2>0.0</slip2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+            <bullet>
+              <friction>1.0</friction>
+              <friction2>1.0</friction2>
+              <rolling_friction>0.1</rolling_friction>
+            </bullet>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>100.0</kd>
+              <min_depth>0.005</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name="v">
+        <geometry>
+          <cylinder>
+            <radius>0.20</radius>
+            <length>0.10</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.08 0.08 0.08 1</ambient>
+          <diffuse>0.12 0.12 0.12 1</diffuse>
+        </material>
+      </visual>
+    <visual name="rim"><geometry><cylinder><radius>0.12</radius><length>0.102</length></cylinder></geometry><material><ambient>0.45 0.48 0.52 1</ambient><diffuse>0.60 0.65 0.70 1</diffuse></material></visual><visual name="hubcap"><geometry><cylinder><radius>0.045</radius><length>0.106</length></cylinder></geometry><material><ambient>0.90 0.55 0.10 1</ambient><diffuse>0.95 0.60 0.15 1</diffuse></material></visual></link>
+    <link name="right_rear_wheel">
+      <pose>-0.23 -0.30 0.20 1.5707963 0 0</pose>
+      <inertial>
+        <mass>2</mass>
+        <inertia>
+          <ixx>0.015</ixx>
+          <iyy>0.015</iyy>
+          <izz>0.025</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="c">
+        <geometry>
+          <sphere>
+            <radius>0.20</radius>
+          </sphere>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>1.0</mu2>
+              <slip1>0.035</slip1>
+              <slip2>0.0</slip2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+            <bullet>
+              <friction>1.0</friction>
+              <friction2>1.0</friction2>
+              <rolling_friction>0.1</rolling_friction>
+            </bullet>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000.0</kp>
+              <kd>100.0</kd>
+              <min_depth>0.005</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <visual name="v">
+        <geometry>
+          <cylinder>
+            <radius>0.20</radius>
+            <length>0.10</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.08 0.08 0.08 1</ambient>
+          <diffuse>0.12 0.12 0.12 1</diffuse>
+        </material>
+      </visual>
+    <visual name="rim"><geometry><cylinder><radius>0.12</radius><length>0.102</length></cylinder></geometry><material><ambient>0.45 0.48 0.52 1</ambient><diffuse>0.60 0.65 0.70 1</diffuse></material></visual><visual name="hubcap"><geometry><cylinder><radius>0.045</radius><length>0.106</length></cylinder></geometry><material><ambient>0.90 0.55 0.10 1</ambient><diffuse>0.95 0.60 0.15 1</diffuse></material></visual></link>
+    <joint name="left_front_joint" type="revolute">
+      <parent>chassis</parent>
+      <child>left_front_wheel</child>
+      <axis>
+        <xyz expressed_in="chassis">0 1 0</xyz>
+        <limit>
+          <effort>120</effort>
+          <velocity>35</velocity>
+        </limit>
+      </axis>
+    </joint>
+    <joint name="right_front_joint" type="revolute">
+      <parent>chassis</parent>
+      <child>right_front_wheel</child>
+      <axis>
+        <xyz expressed_in="chassis">0 1 0</xyz>
+        <limit>
+          <effort>120</effort>
+          <velocity>35</velocity>
+        </limit>
+      </axis>
+    </joint>
+    <joint name="left_rear_joint" type="revolute">
+      <parent>chassis</parent>
+      <child>left_rear_wheel</child>
+      <axis>
+        <xyz expressed_in="chassis">0 1 0</xyz>
+        <limit>
+          <effort>120</effort>
+          <velocity>35</velocity>
+        </limit>
+      </axis>
+    </joint>
+    <joint name="right_rear_joint" type="revolute">
+      <parent>chassis</parent>
+      <child>right_rear_wheel</child>
+      <axis>
+        <xyz expressed_in="chassis">0 1 0</xyz>
+        <limit>
+          <effort>120</effort>
+          <velocity>35</velocity>
+        </limit>
+      </axis>
+    </joint>
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+      <wheel_separation>0.76</wheel_separation>
+      <wheel_radius>0.20</wheel_radius>
+      <max_linear_acceleration>5.0</max_linear_acceleration>
+      <min_linear_acceleration>-5.0</min_linear_acceleration>
+      <max_angular_acceleration>5.5</max_angular_acceleration>
+      <min_angular_acceleration>-5.5</min_angular_acceleration>
+      <max_linear_velocity>5.0</max_linear_velocity>
+      <min_linear_velocity>-2.0</min_linear_velocity>
+      <max_angular_velocity>3.0</max_angular_velocity>
+      <min_angular_velocity>-3.0</min_angular_velocity>
+      <topic>/cmd_vel</topic>
+      <odom_topic>/odom</odom_topic>
+      <tf_topic>/tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_footprint</child_frame_id>
+      <odom_publisher_frequency>30</odom_publisher_frequency>
+      <left_joint>left_front_joint</left_joint>
+      <left_joint>left_rear_joint</left_joint>
+      <right_joint>right_front_joint</right_joint>
+      <right_joint>right_rear_joint</right_joint>
+    </plugin>
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+      <topic>/joint_states</topic>
+      <joint_name>left_front_joint</joint_name>
+      <joint_name>right_front_joint</joint_name>
+      <joint_name>left_rear_joint</joint_name>
+      <joint_name>right_rear_joint</joint_name>
+    </plugin>
+  </model>
+</sdf>

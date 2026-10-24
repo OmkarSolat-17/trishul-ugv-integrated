@@ -4,7 +4,7 @@
 [![Gazebo](https://img.shields.io/badge/Gazebo-Harmonic-FF6F00.svg)](https://gazebosim.org/docs/harmonic)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-24.04_LTS-E95420.svg)](https://ubuntu.com/)
 [![WSL](https://img.shields.io/badge/WSL_2-Windows_11-0078D6.svg)](https://learn.microsoft.com/en-us/windows/wsl/)
-[![Navigation Subsystem](https://img.shields.io/badge/Navigation_Subsystem-Operational_%26_Passing-brightgreen.svg)](src/trishul_navigation/README.md)
+[![Build & Test](https://img.shields.io/badge/All_Subsystems-Operational_%26_Passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 > **Problem Statement (BEL — ID 26126):** *Vision Based Autonomous Navigation for Unmanned Ground Vehicle for Outdoor Environment.*
@@ -13,244 +13,111 @@
 
 ## ⚡ Quickstart: Launch Complete System & Dashboard
 
-Run the unified, single-command launcher (kills any background zombie processes and boots all nodes):
+Run the unified, single-command launcher (kills any lingering background processes, configures GPU acceleration, and boots all nodes):
 ```bash
 cd /home/papa_ji/project/Trishul/merg-trishul
 ./run_demo.sh
 ```
 
+You can select a simulation profile interactively from the terminal menu, or launch directly:
+```bash
+# 1) Standard UGV in Sandbox Proving Ground (AMCL Baseline):
+./run_demo.sh --profile default
+
+# 2) 4WD Skid-Steer UGV in City Normal World (SLAM Toolbox Online Mapping):
+./run_demo.sh --profile city_normal_4wd
+
+# 3) 4WD Skid-Steer UGV in Final City World (Complex Terrain, Flyovers, Bridges & Rivers):
+./run_demo.sh --profile trishul_final_4wd
+```
+
 ### Accessing the BVR Mission Control Web Dashboard:
 * Open your browser at: **`http://127.0.0.1:8090`**
 * **Tactical 2D SLAM Radar:** Click any point inside the arena to dispatch an autonomous Nav2 waypoint.
-* **Teleoperation:** Control the robot with on-screen D-Pad or keyboard **`[W/A/S/D]`**; adjust the dynamic speed slider.
-* **Safety:** Use the red **EMERGENCY STOP** button or **`[Spacebar]`** to instantly clamp velocities to zero.
+* **Dual-Camera Cockpit with PiP:** Switch between 3D Depth Thermal Heatmap, Tactical AI YOLO HUD, Forward Optical, and Rear Optical cameras.
+* **10m Panoramic Area Scan:** Initiate a 360-degree sector sweep that dynamically explores and maps the environment.
+* **Teleoperation & Safety:** Control the robot with on-screen D-Pad or keyboard **`[W/A/S/D]`**; adjust the dynamic speed slider; use the red **EMERGENCY STOP** button or **`[Spacebar]`** to instantly clamp velocities to zero.
 
 ---
 
-## 🚀 Active Subsystem Status: Navigation & Guidance Operational
-
-> **BRANCH: `trishul-navigation`**  
-> **DELIVERABLE STATUS: COMPLETED, TESTED & PRODUCTION-READY**
->
-> The autonomous navigation, guidance, and safety braking subsystem (`src/trishul_navigation`) is fully implemented, verified in simulation, and passing all quality assurance tests. It features a unified single-command launch file, zero-click AMCL self-localization aligned with Gazebo, active LiDAR collision safety braking, autonomous mission execution via the Nav2 Simple Commander API, and WSL2 real-time performance tuning.
-
----
-
-## 🌟 Autonomous Navigation Subsystem Showcase (`trishul_navigation`)
-
-For complete technical documentation, parameter tables, and architecture details, refer to the [trishul_navigation Package Documentation](src/trishul_navigation/README.md).
+## 🌟 System Architecture Overview
 
 ```
-                    +------------------------------------+
-                    |       Gazebo Sim (Physics & LiDAR) |
-                    +------------------+-----------------+
-                                       | /scan, /clock, /tf
-                                       v
-+--------------------------------------+--------------------------------------+
-|                           trishul_navigation                                |
-|                                                                             |
-|  +--------------------+    +--------------------+    +--------------------+ |
-|  | mission_navigator  |    |   sensor_monitor   |    |    status_node     | |
-|  | - Autonomous Goals |    | - LiDAR Sectors    |    | - 1 Hz Heartbeat   | |
-|  | - ETA & Progress   |    | - Active Emergency |    | - Telemetry        | |
-|  | - Custom (X, Y)    |    |   Collision Brake  |    |   Health           | |
-|  +---------+----------+    +---------+----------+    +---------+----------+ |
-|            |                         |                         |            |
-|            | Action: NavToPose       | /cmd_vel (Emergency)    |            |
-|            v                         v                         v            |
-|  +-----------------------------------------------------------------------+  |
-|  |                               Nav2 Stack                              |  |
-|  |   - AMCL Self-Localization (Auto Spawn Alignment: X=-2.00, Y=-0.50)   |  |
-|  |   - Global Costmap (Static & Obstacle Inflation Layers)               |  |
-|  |   - Local Costmap (Dynamic Rolling Window & Voxel/Scan Clearing)      |  |
-|  |   - Smac / NavFn Global Path Planner                                  |  |
-|  |   - DWB / MPPI Local Trajectory Controller                            |  |
-|  |   - Robust WSL Transform Tolerances (1.5s tolerance, 1000ms BT ack)   |  |
-|  +-----------------------------------+-----------------------------------+  |
-+--------------------------------------|--------------------------------------+
-                                       | Displays: Map, Costmaps, Paths, Scans
-                                       v
-                    +------------------------------------+
-                    |          RViz 2 Interface          |
-                    |   (trishul_nav.rviz pre-profile)   |
-                    +------------------------------------+
-```
-
-### Key Deliverables Implemented in this Subsystem:
-
-1. **Unified Master Launch (`navigation.launch.py`)**:
-   Starts Gazebo Harmonic physics simulation, the complete Nav2 navigation stack, pre-configured RViz 2 layout, active sensor supervision, and telemetry heartbeat in one terminal command.
-2. **Autonomous Mission Commander (`mission_navigator.py`)**:
-   Hands-free autonomous navigation built on the `nav2_simple_commander` API. Supports full cross-arena traversal and accepts arbitrary coordinates from the command line (`-p target_x:=... -p target_y:=...`).
-3. **Active Collision Prevention & Emergency Braking (`sensor_monitor.py`)**:
-   Segments 360° LiDAR feeds into angular sectors (`FRONT`, `LEFT`, `RIGHT`). If an obstacle breaches the forward arc closer than 0.25 m, an active Emergency Stop (`linear.x = 0.0`) is immediately dispatched to `/cmd_vel`.
-4. **Zero-Click AMCL Pose Alignment**:
-   Configured `set_initial_pose: true` at `(-2.00, -0.50)` to precisely match the Gazebo robot spawn point, eliminating the default center-pillar collision bug.
-5. **WSL2 Hypervisor Real-Time Tuning**:
-   Tuned `transform_tolerance: 1.5s` and `default_server_timeout: 1000ms` to eliminate virtualization latency errors (`Transform data too old` and BT planner timeouts).
-6. **Pre-Configured RViz 2 Profile (`trishul_nav.rviz`)**:
-   Standardized visualization showing map, costmaps, laser scans, footprints, and trajectories out-of-the-box.
-7. **Production Quality Assurance**:
-   Zero errors, zero failures under `colcon test` with PEP8 (Flake8) and PEP257 docstring compliance.
-
----
-
-### Quick Start: Running the Autonomous Navigation Subsystem
-
-#### Step 1: Build the Package
-```bash
-cd ~/trishul_ugv
-source /opt/ros/jazzy/setup.bash
-colcon build --symlink-install --packages-select trishul_navigation
-source install/setup.bash
-```
-
-#### Step 2: Launch the Complete Navigation System
-```bash
-ros2 launch trishul_navigation navigation.launch.py
-```
-*(Gazebo Sim, Nav2, and RViz 2 will open with the robot localized at `(-2.0, -0.5)`).*
-
-#### Step 3: Command the Robot Where to Go
-In a second terminal:
-```bash
-cd ~/trishul_ugv
-source install/setup.bash
-
-# Option 1: Autonomous Cross-Arena Mission (Travels to opposite side of map)
-ros2 run trishul_navigation mission_navigator
-
-# Option 2: Send Any Custom Coordinates
-ros2 run trishul_navigation mission_navigator --ros-args -p target_x:=1.0 -p target_y:=0.5
-
-# Option 3: Visual Point-and-Click via RViz
-# Click the "Nav2 Goal" button in the RViz toolbar and click any open floor space.
-
-# Option 4: Manual Keyboard Teleoperation (Protected by Active Collision Braking)
-ros2 run teleop_twist_keyboard teleop_twist_keyboard
+                    +-----------------------------------------------------+
+                    |       Gazebo Harmonic Simulation (Physics & Worlds) |
+                    |      - city_normal.sdf / trishul_final.sdf / models |
+                    +--------------------------+--------------------------+
+                                               | /scan, /camera/image_raw, /clock, /tf, /odom
+                                               v
++---------------------------------------------------------------------------------------------------------+
+|                                        TRISHUL ROS 2 ECOSYSTEM                                          |
+|                                                                                                         |
+|   +--------------------------+    +--------------------------+    +---------------------------------+   |
+|   |   trishul_perception     |    |   trishul_localization   |    |       trishul_navigation        |   |
+|   | - YOLO Object Detection  |    | - SLAM Toolbox 2D Online |    | - Nav2 Smac & NavFn Planners    |   |
+|   | - 3D Metric Extraction   |    |   Async Mapping          |    | - DWB Dynamic Local Controller  |   |
+|   | - Active Route Yielding  |    | - AMCL Particle Filter   |    | - 360 LiDAR Safety Brake        |   |
+|   | - PointCloud2 Projection |    | - Sub-mm TF2 Broadcast   |    | - Custom Recovery Behaviors     |   |
+|   +------------+-------------+    +------------+-------------+    +----------------+----------------+   |
+|                |                               |                                   |                    |
++----------------|-------------------------------|-----------------------------------|--------------------+
+                 | /ugv/combined/image           | TF (map -> base_footprint)        | /plan, Action      |
+                 v                               v                                   v                    |
++---------------------------------------------------------------------------------------------------------+
+|                               BACKEND: trishul_dashboard_server (Port 8090)                             |
+|   - Multi-Threaded rclpy node + ThreadingHTTPServer serving REST API & MJPEG Streams                    |
+|   - Nav2 Action Client (NavigateToPose) with distance and ETA calculation                               |
+|   - Authoritative Latched Emergency Stop (E-STOP) hardware-level velocity clamp                         |
+|   - Dynamic OccupancyGrid-to-RGBA base64 image converter (dilated crisp walls, transparent floors)      |
+|   - 10m Panoramic Area Scan routine & Dynamic Speed Limit calibration REST endpoint                     |
++---------------------------------------------------------------------------------------------------------+
+                                                 | REST API & Multi-Stream MJPEG Video
+                                                 v
++---------------------------------------------------------------------------------------------------------+
+|                           FRONTEND: BVR Tactical Ground Control Station (GCS)                           |
+|   - Tactical HUD: Telemetry snapshot, battery monitoring, real-time FPS counter, YOLO decision badge    |
+|   - Multi-Camera PiP Viewport: Optical RGB, RealSense 3D Depth Heatmap, Rear Camera, and AI YOLO HUD    |
+|   - Interactive 2D SLAM Canvas: Interactive click-to-dispatch goal, laser points, dynamic robot reticle |
+|   - Mission Execution: 10m Sector Scan, Sector Alpha/Bravo Patrols, Speed Slider, Keyboard Teleoperation|
++---------------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 1. Start Here — Reading Order for Team Members
+## 📦 Packages in this Repository
 
-Every member should read these in order:
-
-1. **This file** — project overview, status, and navigation showcase.
-2. [src/trishul_navigation/README.md](src/trishul_navigation/README.md) — deep dive into the operational navigation package.
-3. [docs/trishul-ugv-docs/PRODUCT.md](docs/trishul-ugv-docs/PRODUCT.md) — full project goal, hackathon context, scope, and success measures.
-4. [docs/trishul-ugv-docs/TEAM_ROLES.md](docs/trishul-ugv-docs/TEAM_ROLES.md) — find your role and what you must deliver.
-5. [docs/trishul-ugv-docs/SETUP_GUIDE.md](docs/trishul-ugv-docs/SETUP_GUIDE.md) — WSL 2, Ubuntu 24.04, ROS 2 Jazzy and Gazebo setup steps.
-6. [docs/trishul-ugv-docs/GIT_WORKFLOW.md](docs/trishul-ugv-docs/GIT_WORKFLOW.md) — branching, commits, PRs, and what never to commit.
-7. [docs/trishul-ugv-docs/INTERFACES.md](docs/trishul-ugv-docs/INTERFACES.md) — the interface agreement table.
-8. [docs/trishul-ugv-docs/TESTING_AND_DEMO.md](docs/trishul-ugv-docs/TESTING_AND_DEMO.md) — test layers, scenario checklists, and judging demo plan.
-9. [docs/trishul-ugv-docs/AI_CODING_GUIDE.md](docs/trishul-ugv-docs/AI_CODING_GUIDE.md) — rules for using Antigravity or any AI coding assistant.
-10. [docs/trishul-ugv-docs/CONTRIBUTING.md](docs/trishul-ugv-docs/CONTRIBUTING.md) — quick contributing reference card.
-
----
-
-## 2. Project Overview
-
-**Trishul** is the software "brain" of a simulated autonomous UGV engineered for rugged outdoor environments. It combines simulation, sensor communication, camera-based perception, localization, and navigation so the robot can move toward a goal while responding to its surroundings.
-
-The team's **nine-day hackathon MVP** aims to demonstrate:
-
-1. **Realistic Outdoor Simulation** — UGV operating in a Gazebo Harmonic outdoor world with realistic physics, terrain, and lighting.
-2. **Sensor Suite Simulation** — Simulated cameras (monocular / RGB-D) and proprioceptive sensors (IMU, wheel encoders).
-3. **Vision & AI Perception** — Camera-based image processing, lightweight AI hazard/obstacle detection, and traversability estimation.
-4. **Mapping & Localization** — State estimation targeting **visual SLAM / visual odometry** as the primary localization source.
-5. **Autonomous Navigation** — Point A → Point B goal navigation using the Nav2 stack (**Delivered in `trishul_navigation`**).
-6. **Dynamic Obstacle Avoidance** — Real-time costmap updates from visual perception with local replanning.
-7. **Comprehensive Visualization** — Live telemetry, sensor feeds, costmaps, and trajectories in RViz 2 and Gazebo.
-8. **Reproducible Demonstration** — Full end-to-end execution on one Dell G15 laptop (Windows 11 + WSL 2 + Ubuntu 24.04 LTS).
-
----
-
-## 3. Technology Stack
-
-| Layer | Technology | Details |
+| Package | Purpose & Technologies | Documentation |
 | :--- | :--- | :--- |
-| **Host OS** | Windows 11 (64-bit) | WSLg enabled for native hardware-accelerated GUI |
-| **Guest OS** | Ubuntu 24.04 LTS (Noble Numbat) | WSL 2 virtualized Linux kernel |
-| **Robotics Middleware** | ROS 2 Jazzy Jalisco | Primary Tier-1 LTS release for Ubuntu 24.04 |
-| **Physics Simulation** | Gazebo Harmonic (`ros_gz`) | Official simulation suite paired with ROS 2 Jazzy |
-| **Navigation** | Nav2 (Navigation 2) | Official ROS 2 Jazzy Nav2 stack (**Fully Operational**) |
-| **Visualization** | RViz 2 & Gazebo Sim GUI | Hardware-accelerated via DirectX/Mesa in WSLg |
-| **Vision / AI** | Python, OpenCV, lightweight pretrained model | TBD by Vision/AI lead |
-| **Localization** | AMCL (Operational baseline) + Visual SLAM (Stretch) | Localization lead integration |
-| **Version Control** | Git & GitHub | Single repository, feature-branch workflow |
+| **`trishul_bringup`** | Unified demo launch orchestrators (`demo.launch.py`, `city_4wd_demo.launch.py`), BVR Mission Control Web Dashboard server (Port 8090), and `./run_demo.sh` profile launcher. | [trishul_bringup/README.md](src/trishul_bringup/README.md) |
+| **`trishul_navigation`** | Nav2 stack configuration (Smac/NavFn planners, DWB trajectory controller, custom recovery trees, 4WD profiles) and reactive LiDAR collision safety braking. | [trishul_navigation/README.md](src/trishul_navigation/README.md) |
+| **`trishul_perception`** | Vision-AI engine: YOLO real-time object detection (`best.pt`), 3D metric extraction from RealSense depth, active route yielding/braking, and PointCloud2 costmap projection. | [trishul_perception/README.md](src/trishul_perception/README.md) |
+| **`trishul_localization`** | State estimation: SLAM Toolbox online async mapping, AMCL particle filter localization, and sub-millimeter TF2 frame broadcasting. | [trishul_localization/README.md](src/trishul_localization/README.md) |
+| **`trishul_simulation`** | Gazebo Harmonic physics environments, city worlds (`city_normal.sdf`, `trishul_final.sdf`), custom 3D models (bridges, flyovers, rivers), and `ros_gz_bridge`. | [trishul_simulation/README.md](src/trishul_simulation/README.md) |
+| **`trishul_description`** | Complete 4WD Skid-Steer UGV model, URDF/Xacro kinematics, sensor placement (RGB-D camera, rear camera, 360 LiDAR, IMU) adhering to REP-103/REP-105 standards. | [trishul_description/README.md](src/trishul_description/README.md) |
 
 ---
 
-## 4. Repository Structure — Package & Directory Index
+## 💻 Hardware & Environment
 
-```text
-trishul-ugv/                        ← repository root
-├── README.md                       ← Master entry point (this file)
-├── .gitignore                      ← excludes build/, install/, logs, models, venvs
-├── CONTRIBUTING.md                 ← full Git workflow, ownership, PR, and data rules
-├── LICENSE                         ← Apache 2.0
-│
-├── docs/                           ← all documentation
-│   ├── ARCHITECTURE_OVERVIEW.md    ← system diagram & per-module boundaries
-│   ├── ENVIRONMENT_SETUP_GUIDE.md  ← step-by-step WSL 2 + ROS 2 + Gazebo setup
-│   ├── INTERFACE_PLANNING_CHECKLIST.md ← REP-103/105, sensor & Nav2 checklist
-│   └── trishul-ugv-docs/           ← original team reference documentation
-│
-├── src/                            ← ROS 2 colcon workspace source root
-│   ├── trishul_description/        ← URDF/Xacro, meshes, joint kinematics
-│   ├── trishul_simulation/         ← Gazebo worlds, ros_gz_bridge configs
-│   ├── trishul_perception/         ← camera pipeline, AI detection, traversability
-│   ├── trishul_localization/       ← EKF fusion, visual SLAM, TF broadcasting
-│   ├── trishul_navigation/         ← [OPERATIONAL] Nav2 params, costmaps, planners, safety brake
-│   └── trishul_bringup/            ← master launch files, RViz profiles
-│
-├── tests/                          ← integration tests, launch_testing harnesses
-├── scripts/                        ← developer onboarding and utility scripts
-├── results/                        ← test logs, benchmarks, demo screenshots
-└── requirements/                   ← Python dependency declarations
-```
-
-### ROS 2 Package Implementation Status
-
-| Package | Status | Core Deliverables & Technologies | Documentation |
-| :--- | :---: | :--- | :--- |
-| **`trishul_bringup`** | **Operational & Verified** | Master launch orchestrator (`demo.launch.py`), BVR Mission Control Dashboard server (HTTP REST, MJPEG stream, port 8090), and `./run_demo.sh` safe launcher. | [docs/SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md) |
-| **`trishul_navigation`** | **Operational & Verified** | Nav2 stack integration (Smac/NavFn planners, DWB trajectory controller, dynamic costmaps) with active LiDAR safety brake override. | [src/trishul_navigation/README.md](src/trishul_navigation/README.md) |
-| **`trishul_description`** | **Operational & Verified** | Complete UGV kinematic model (`trishul_ugv.sdf.xacro`), 360° 2D LiDAR scanner, forward perception camera, and diff-drive physics parameters. | [docs/SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md) |
-| **`trishul_perception`** | **Operational & Verified** | 3D depth perception thermal heatmap (`cv2.COLORMAP_TURBO`), live FPS calculation, and YOLOv8 visual detection bridge. | [docs/SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md) |
-| **`trishul_localization`** | **Operational & Verified** | Millimeter-accurate TF2 transform synchronization (`map -> base_footprint`), AMCL particle filter localization, and dynamic SLAM map base64 encoding. | [docs/SYSTEM_DOCUMENTATION.md](docs/SYSTEM_DOCUMENTATION.md) |
-| **`trishul_simulation`** | **Operational & Verified** | Gazebo Harmonic physics simulation with ROS-GZ parameter bridge for sensor topics and clock synchronization. | [docs/ENVIRONMENT_SETUP_GUIDE.md](docs/ENVIRONMENT_SETUP_GUIDE.md) |
+- **Host Operating System**: Windows 11 (64-bit) with WSL 2 and WSLg hardware acceleration.
+- **Guest Operating System**: Ubuntu 24.04 LTS (Noble Numbat).
+- **GPU Acceleration**: NVIDIA GeForce RTX via Direct3D 12 Gallium driver (`GALLIUM_DRIVER=d3d12`, `MESA_D3D12_DEFAULT_ADAPTER_NAME="NVIDIA"`).
+- **Robotics Middleware**: ROS 2 Jazzy Jalisco.
+- **Physics Simulation**: Gazebo Harmonic (`ros_gz`).
+- **Python / AI**: Python 3.12, PyTorch / YOLOv8, OpenCV 4.8+.
 
 ---
 
-## 5. Team Roles & Ownership
+## 📋 Comprehensive Documentation Index
 
-| # | Role | Owner | Owned Directories | Status & Key Deliverables |
-| :--- | :--- | :--- | :--- | :--- |
-| 1 | **Simulation Lead** | TBD | `src/trishul_description/`<br>`src/trishul_simulation/` | Working robot model + outdoor Gazebo world + sensor topics |
-| 2 | **Vision / AI Lead** | TBD | `src/trishul_perception/`<br>`requirements/` | Camera processing node + AI detection + traversability output |
-| 3 | **Localization Lead** | TBD | `src/trishul_localization/` | State estimation + TF tree + map/pose output |
-| 4 | **Navigation Lead** | **Kshitij** | `src/trishul_navigation/` | **DELIVERED & VERIFIED**: Nav2 costmaps + path planning + mission commander + collision safety brake |
-| 5 | **Integration Lead** | TBD | `src/trishul_bringup/`<br>`docs/` · `scripts/` · `tests/` | Master launch + RViz profile + clean-clone demo |
+- [Master System Documentation](docs/SYSTEM_DOCUMENTATION.md) — Comprehensive technical manual and architectural breakdown.
+- [Mission Control Web Dashboard Guide](docs/MISSION_CONTROL_DASHBOARD.md) — Tactical GCS user manual, API endpoints, and features.
+- [Architecture Overview](docs/ARCHITECTURE_OVERVIEW.md) — Detailed block diagrams and subsystem interaction contracts.
+- [Environment Setup Guide](docs/ENVIRONMENT_SETUP_GUIDE.md) — Complete setup instructions for WSL 2, ROS 2 Jazzy, and Gazebo Harmonic.
+- [Contributing & Git Workflow](CONTRIBUTING.md) — Team standards, code quality checks, and commit guidelines.
 
 ---
 
-## 6. Quality Assurance & Verification
+## 🛡️ License
 
-The navigation subsystem has been rigorously tested:
-* **Flake8 (PEP8)**: Clean code conventions with 0 linting errors.
-* **PEP257**: Standard Python docstring conventions satisfied.
-* **colcon test**: `3 tests, 0 errors, 0 failures, 1 skipped` (copyright).
-* **WSL2 Runtime Tested**: Traversal tested across the arena with zero timeout crashes and active safety braking confirmed.
-
----
-
-## 7. Official Learning References
-
-| Resource | URL |
-| :--- | :--- |
-| ROS 2 Jazzy Installation | https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html |
-| Nav2 Documentation | https://docs.nav2.org/ |
-| Gazebo Harmonic Docs | https://gazebosim.org/docs/harmonic/ |
-| GitHub Repository | https://github.com/Ethical-Coderss/trishul-ugv |
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.

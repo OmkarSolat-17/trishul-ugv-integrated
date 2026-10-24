@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mapImageLoaded: false,
         plannedPath: [],
         currentGoal: null, // Dynamic, set on click or mission
-        speedLimit: 0.25,
+        speedLimit: 2.50,
         estopLatched: false,
         navState: 'IDLE',
         distRemaining: 0.0,
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         viewMode: 'fixed', // 'fixed' (static arena, robot moves) or 'follow' (centered on robot)
         arenaCenter: { x: 0.0, y: 0.0 },
         trail: [], // Pixels per meter
-        activeFeed: 'combined',
+        activeFeed: 'depth',
         lastMapVersion: -1,
     };
 
@@ -228,19 +228,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 elClosestObs.textContent = `${state.closestObstacle.toFixed(2)} m`;
                 if (state.closestObstacle < 0.35) {
                     elClosestObs.className = 'val text-red glow-red';
-                    if (elSafetyStatus) {
+                            // Update YOLO Decision Badge
+        const elYoloDec = document.getElementById('val-yolo-decision');
+        if (elYoloDec && data.yolo_decision) {
+            const act = data.yolo_decision.action || 'CLEAR';
+            const tgt = data.yolo_decision.target || 'NONE';
+            const dist = data.yolo_decision.distance || 0;
+            const spd = data.yolo_decision.speed_limit || state.speedLimit;
+
+            if (act === 'EMERGENCY_STOP') {
+                elYoloDec.textContent = `BRAKE: ${tgt.toUpperCase()} (${dist}m)`;
+                elYoloDec.className = 'gauge-value highlight-red';
+            } else if (act === 'YIELD_AND_SLOW') {
+                elYoloDec.textContent = `YIELD: ${tgt.toUpperCase()} (${spd}m/s)`;
+                elYoloDec.className = 'gauge-value highlight-orange';
+            } else {
+                elYoloDec.textContent = `CLEAR (${state.speedLimit.toFixed(1)}m/s)`;
+                elYoloDec.className = 'gauge-value highlight-green';
+            }
+        }
+        if (elSafetyStatus) {
                         elSafetyStatus.textContent = 'DANGER: COLLISION BRAKE';
                         elSafetyStatus.className = 'sub-val text-red';
                     }
                 } else if (state.closestObstacle < 0.70) {
                     elClosestObs.className = 'val text-amber';
-                    if (elSafetyStatus) {
+                            // Update YOLO Decision Badge
+        const elYoloDec = document.getElementById('val-yolo-decision');
+        if (elYoloDec && data.yolo_decision) {
+            const act = data.yolo_decision.action || 'CLEAR';
+            const tgt = data.yolo_decision.target || 'NONE';
+            const dist = data.yolo_decision.distance || 0;
+            const spd = data.yolo_decision.speed_limit || state.speedLimit;
+
+            if (act === 'EMERGENCY_STOP') {
+                elYoloDec.textContent = `BRAKE: ${tgt.toUpperCase()} (${dist}m)`;
+                elYoloDec.className = 'gauge-value highlight-red';
+            } else if (act === 'YIELD_AND_SLOW') {
+                elYoloDec.textContent = `YIELD: ${tgt.toUpperCase()} (${spd}m/s)`;
+                elYoloDec.className = 'gauge-value highlight-orange';
+            } else {
+                elYoloDec.textContent = `CLEAR (${state.speedLimit.toFixed(1)}m/s)`;
+                elYoloDec.className = 'gauge-value highlight-green';
+            }
+        }
+        if (elSafetyStatus) {
                         elSafetyStatus.textContent = 'WARNING: PROXIMITY ALERT';
                         elSafetyStatus.className = 'sub-val text-amber';
                     }
                 } else {
                     elClosestObs.className = 'val text-cyan';
-                    if (elSafetyStatus) {
+                            // Update YOLO Decision Badge
+        const elYoloDec = document.getElementById('val-yolo-decision');
+        if (elYoloDec && data.yolo_decision) {
+            const act = data.yolo_decision.action || 'CLEAR';
+            const tgt = data.yolo_decision.target || 'NONE';
+            const dist = data.yolo_decision.distance || 0;
+            const spd = data.yolo_decision.speed_limit || state.speedLimit;
+
+            if (act === 'EMERGENCY_STOP') {
+                elYoloDec.textContent = `BRAKE: ${tgt.toUpperCase()} (${dist}m)`;
+                elYoloDec.className = 'gauge-value highlight-red';
+            } else if (act === 'YIELD_AND_SLOW') {
+                elYoloDec.textContent = `YIELD: ${tgt.toUpperCase()} (${spd}m/s)`;
+                elYoloDec.className = 'gauge-value highlight-orange';
+            } else {
+                elYoloDec.textContent = `CLEAR (${state.speedLimit.toFixed(1)}m/s)`;
+                elYoloDec.className = 'gauge-value highlight-green';
+            }
+        }
+        if (elSafetyStatus) {
                         elSafetyStatus.textContent = 'PATH CLEAR';
                         elSafetyStatus.className = 'sub-val text-green';
                     }
@@ -658,6 +715,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------------- Preset Missions ----------------
+        // 10m Area Scan Button
+    document.getElementById('btn-scan-10m')?.addEventListener('click', () => {
+        logEvent('MISSION', 'Initiating 10m Radius Panoramic Scan Routine...');
+        fetch('/api/scan_10m', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        }).then(r => r.json()).then(res => {
+            if (res.status === 'ok') {
+                logEvent('RADAR', '10m Scan Active: Sweeping 360-degree sector & expanding map');
+            } else {
+                logEvent('ERROR', res.message || 'Failed to start 10m scan', 'danger');
+            }
+        }).catch(err => {
+            logEvent('ERROR', `Scan request failed: ${err.message}`, 'danger');
+        });
+    });
+
     document.getElementById('btn-patrol-1')?.addEventListener('click', () => {
         logEvent('MISSION', 'Dispatching Preset: Patrol Sector Alpha');
         dispatchGoal(1.5, -0.5, 0.0);
@@ -697,12 +772,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const feed = btn.getAttribute('data-feed') || 'combined';
             state.activeFeed = feed;
 
-            if (feed === 'combined') {
-                logEvent('CAMERA', 'Switched to FRONT [3D Depth Perception Heatmap Active]');
-                if (elFeedStatus) elFeedStatus.textContent = '3D DEPTH PERCEPTION';
+            if (feed === 'yolo' || feed === 'combined') {
+                logEvent('CAMERA', 'Switched to AI OBJECT DETECTION & TACTICAL HUD');
+                if (elFeedStatus) elFeedStatus.textContent = 'AI OBJECT DETECTION';
+                if (elFps) {
+                    elFps.textContent = 'ONLINE';
+                    elFps.style.color = '#00f2fe';
+                }
+            } else if (feed === 'depth') {
+                logEvent('CAMERA', 'Switched to 3D DEPTH SENSOR HEATMAP');
+                if (elFeedStatus) elFeedStatus.textContent = '3D DEPTH HEATMAP';
                 if (elFps) {
                     elFps.textContent = 'LIVE';
-                    elFps.style.color = '#00f2fe';
+                    elFps.style.color = '#ffaa00';
                 }
             } else if (feed === 'stereo') {
                 logEvent('CAMERA', 'Switched to FORWARD STEREO OPTICAL CAM');
@@ -734,7 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSwapPip = document.getElementById('btn-swap-pip');
 
     let pipActive = false;
-    let pipFeed = 'stereo';
+    let pipFeed = 'yolo';
 
     function updatePipView() {
         if (!elPipViewport || !elPipVideo) return;
@@ -879,6 +961,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = parseFloat(e.target.value);
             state.speedLimit = val;
             if (elSpeedVal) elSpeedVal.textContent = val.toFixed(2);
+        });
+        elSpeedSlider.addEventListener('change', (e) => {
+            const val = parseFloat(e.target.value);
+            state.speedLimit = val;
+            fetch('/api/speed_limit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ speed: val })
+            }).then(r => r.json()).then(data => {
+                logEvent('SPEED', `Vehicle default speed limit calibrated to ${val.toFixed(2)} m/s`);
+            }).catch(() => {});
         });
     }
 

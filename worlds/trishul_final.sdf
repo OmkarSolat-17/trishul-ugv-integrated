@@ -1,9 +1,31 @@
 <sdf version='1.10'>
   <world name='trishul_city'>
-    <physics name='1ms' type='ignored'>
-      <max_step_size>0.001</max_step_size>
+    <plugin
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+      filename="gz-sim-user-commands-system"
+      name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin
+      filename="gz-sim-sensors-system"
+      name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin
+      filename="gz-sim-imu-system"
+      name="gz::sim::systems::Imu">
+    </plugin>
+
+    <physics name='4ms' type='ignored'>
+      <max_step_size>0.005</max_step_size>
       <real_time_factor>1</real_time_factor>
-      <real_time_update_rate>1000</real_time_update_rate>
+      <real_time_update_rate>200</real_time_update_rate>
     </physics>
     <gravity>0 0 -9.8000000000000007</gravity>
     <magnetic_field>5.5644999999999998e-06 2.2875799999999999e-05 -4.2388400000000002e-05</magnetic_field>
@@ -1699,7 +1721,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>13.048876762390135 13.061484336853027 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.048876762390135 13.061484336853027 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1'>
@@ -1807,7 +1829,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>13.136736527740979 -13.011269807206972 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.136736527740979 -13.011269807206972 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='sidewalk_2_1'>
@@ -2464,6 +2486,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -2478,6 +2501,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -2703,7 +2727,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>13.014524068882139 -33.033448772070358 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.014524068882139 -33.033448772070358 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_1'>
@@ -2811,7 +2835,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>13.057053412323206 -52.863364738926357 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.057053412323206 -52.863364738926357 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_2'>
@@ -2919,7 +2943,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>12.962058118897566 -72.782626419937486 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>12.962058118897566 -72.782626419937486 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_3'>
@@ -3027,7 +3051,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>13.047209307060681 33.054310617885058 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.047209307060681 33.054310617885058 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_4'>
@@ -3135,7 +3159,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>13.061929652983727 52.917434520652492 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.061929652983727 52.917434520652492 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5'>
@@ -3243,7 +3267,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>13.123696572423178 72.847517052496727 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>13.123696572423178 72.847517052496727 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_1_1'>
@@ -3999,7 +4023,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>78.460701501684397 72.912640716680329 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.460701501684397 72.912640716680329 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_2'>
@@ -4107,7 +4131,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>78.443719484842887 53.063787926284434 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.443719484842887 53.063787926284434 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3'>
@@ -4215,7 +4239,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>78.609738581934707 33.536776205864321 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.609738581934707 33.536776205864321 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_1_7'>
@@ -4539,7 +4563,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>78.403750886944408 13.81432769228207 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.403750886944408 13.81432769228207 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3_2'>
@@ -4647,7 +4671,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>78.023805597874116 -12.792881615484243 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.023805597874116 -12.792881615484243 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3_3'>
@@ -4755,7 +4779,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>78.063355119815625 -32.695366467213454 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.063355119815625 -32.695366467213454 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3_4'>
@@ -4863,7 +4887,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>78.035293676555938 -52.381518510922518 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.035293676555938 -52.381518510922518 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_5_3_5'>
@@ -4971,13 +4995,14 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>78.030629246819345 -72.316402797817091 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>78.030629246819345 -72.316402797817091 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='side_road_1'>
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -4992,6 +5017,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -5024,6 +5050,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -5038,6 +5065,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -5070,6 +5098,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -5084,6 +5113,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -5116,6 +5146,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -5130,6 +5161,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -5162,6 +5194,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -5176,6 +5209,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -7581,7 +7615,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>-52.46538632169527 -12.460106172755324 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.46538632169527 -12.460106172755324 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_7'>
@@ -7689,7 +7723,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>-52.455895787219866 -32.210289446524683 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.455895787219866 -32.210289446524683 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_8'>
@@ -7797,7 +7831,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>-52.407575626262016 -51.87584505739413 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.407575626262016 -51.87584505739413 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_9'>
@@ -7905,7 +7939,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>-52.385566725694041 -71.673693792558481 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.385566725694041 -71.673693792558481 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_10'>
@@ -8013,7 +8047,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>-52.758859020575528 12.762303507894677 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.758859020575528 12.762303507894677 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_11'>
@@ -8121,7 +8155,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>-52.692998506222679 32.629427554593498 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.692998506222679 32.629427554593498 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_12'>
@@ -8229,7 +8263,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>-52.634634970215672 52.341616007623472 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.634634970215672 52.341616007623472 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='main_road_0_1_1_13'>
@@ -8337,7 +8371,7 @@
         </inertial>
         <enable_wind>false</enable_wind>
       </link>
-      <pose>-52.4790036833448 72.307089880878465 -0.021312600001692772 0 0 1.5694200991144711</pose>
+      <pose>-52.4790036833448 72.307089880878465 0 0 0 1.5694200991144711</pose>
       <self_collide>false</self_collide>
     </model>
     <model name='left_road_extension_1_1'>
@@ -8868,6 +8902,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -8882,6 +8917,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -8914,6 +8950,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -8928,6 +8965,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -8960,6 +8998,7 @@
       <static>true</static>
       <link name='road_link'>
         <collision name='road_collision'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -8974,6 +9013,7 @@
           </surface>
         </collision>
         <visual name='road_visual'>
+          <pose>0 0 0.02 0 0 0</pose>
           <geometry>
             <box>
               <size>6 20 0.040000000000000001</size>
@@ -19918,107 +19958,107 @@
       <self_collide>false</self_collide>
     </model>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/river</uri>
+      <uri>model://river</uri>
       <name>river</name>
       <pose>-34.453865051269531 -19.499105453491211 0.10000000149011612 0 0 -1.5820000293107654</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/river</uri>
+      <uri>model://river</uri>
       <name>river_1</name>
       <pose>-34.636240198466538 -49.213896430857233 0.10000000149011612 0 0 -1.5820000074096552</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/river</uri>
+      <uri>model://river</uri>
       <name>river_2</name>
       <pose>-34.918946696121978 -78.243439048108343 0.10000000149011612 0 0 -1.5820000074096552</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/river</uri>
+      <uri>model://river</uri>
       <name>river_3</name>
       <pose>-34.975700949032515 -86.94594646864428 0.10000000149011612 0 0 -1.5820000074096552</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/river</uri>
+      <uri>model://river</uri>
       <name>river_4</name>
       <pose>-34.302344510132954 18.539771865548374 0.10000000149011612 0 0 -1.5820000074096552</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/river</uri>
+      <uri>model://river</uri>
       <name>river_5</name>
       <pose>-34.042618746588346 48.163707882078512 0.10000000149011612 0 0 -1.5820000074096552</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/river</uri>
+      <uri>model://river</uri>
       <name>river_6</name>
       <pose>-33.683423926917669 73.506952718006644 0.10000000149011612 0 0 -1.5820000074096552</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/river</uri>
+      <uri>model://river</uri>
       <name>river_7</name>
       <pose>-33.456726878192967 83.2282164873222 0.10000000149011612 0 0 -1.5820000074096552</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/bridge</uri>
+      <uri>model://bridge</uri>
       <name>bridge</name>
       <pose>-34.099700927734375 84.856834411621094 -0.0097327502444386482 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/bridge</uri>
+      <uri>model://bridge</uri>
       <name>bridge_1</name>
       <pose>-34.201964715438436 -0.15404006656889457 -0.0097327502444386482 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/bridge</uri>
+      <uri>model://bridge</uri>
       <name>bridge_2</name>
       <pose>-33.183186109029037 -84.604682919742558 -0.0097327502444386482 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover</uri>
+      <uri>model://flyover</uri>
       <name>flyover</name>
       <pose>1.2497260570526123 -41.12860107421875 2.6296799182891846 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover</uri>
+      <uri>model://flyover</uri>
       <name>flyover_pillars</name>
       <pose>-18.563636779785156 -41.556400299072266 -0.19978299736976624 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover_plate</uri>
+      <uri>model://flyover_plate</uri>
       <name>flyover_plate_1</name>
-      <pose>71.64013671875 -41.683811187744141 0.27977588772773743 0.0045628297584736997 -0.18937999442906947 3.1057500009019043</pose>
+      <pose>71.64013671875 -41.683811187744141 0.52808 0.0045628297584736997 -0.18937999442906947 3.1057500009019043</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover</uri>
+      <uri>model://flyover</uri>
       <name>flyover_pillars_1</name>
       <pose>-0.94607502082025974 -41.574458532271272 -0.19978299736976624 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover</uri>
+      <uri>model://flyover</uri>
       <name>flyover_pillars_2</name>
       <pose>26.325368905630064 -41.588988943887415 -0.19978299736976624 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover</uri>
+      <uri>model://flyover</uri>
       <name>flyover_pillars_3</name>
       <pose>46.48048572293267 -41.499791194935767 -0.19978299736976624 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover</uri>
+      <uri>model://flyover</uri>
       <name>flyover_1</name>
       <pose>48.506029273572494 -41.278311631633578 2.6296799182891846 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover</uri>
+      <uri>model://flyover</uri>
       <name>flyover_3</name>
       <pose>24.664816350496331 -41.216746947904078 2.6296799182891846 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover</uri>
+      <uri>model://flyover</uri>
       <name>flyover_4</name>
       <pose>-22.5427720102889 -41.042662976221393 2.6296799182891846 0 0 0</pose>
     </include>
     <include>
-      <uri>file:///home/vansh/trishul_ws/trishul_city/models/flyover_plate</uri>
+      <uri>model://flyover_plate</uri>
       <name>flyover_plate_rotated</name>
       <pose>-45.7462158203125 -40.948734283447266 0.5190308690071106 -2.3442704580755752e-10 -0.18915499566931762 -0.0096329395819788263</pose>
     </include>
@@ -20185,5 +20225,10 @@
         <falloff>0</falloff>
       </spot>
     </light>
-  </world>
+      <include>
+      <uri>model://trishul_4wd_ugv</uri>
+      <name>trishul_4wd_ugv</name>
+      <pose>0 0 0.3 0 0 0</pose>
+    </include>
+</world>
 </sdf>

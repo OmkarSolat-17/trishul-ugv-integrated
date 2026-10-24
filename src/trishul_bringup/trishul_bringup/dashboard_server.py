@@ -17,6 +17,7 @@ import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 import cv2
+from cv_bridge import CvBridge
 import numpy as np
 import rclpy
 from rclpy.action import ActionClient
@@ -29,6 +30,10 @@ from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped
 import tf2_ros
 from rclpy.duration import Duration
 from nav2_msgs.action import NavigateToPose
+try:
+    from nav2_msgs.msg import SpeedLimit
+except ImportError:
+    SpeedLimit = None
 from nav_msgs.msg import Odometry, Path, OccupancyGrid
 from sensor_msgs.msg import Image, LaserScan
 from std_msgs.msg import String
@@ -40,6 +45,8 @@ class SharedDashboardState:
         self.lock = threading.Lock()
         self.latest_jpeg = None
         self.raw_jpeg = None
+        self.depth_jpeg = None
+        self.yolo_jpeg = None
         self.optical_jpeg = None
         self.rear_jpeg = None
         self.pose = {'x': -2.0, 'y': -0.5, 'yaw': 0.0}
@@ -49,6 +56,7 @@ class SharedDashboardState:
         self.laser_points = []
         self.path = []
         self.detections = []
+        self.yolo_decision = {'action': 'CLEAR', 'target': 'NONE', 'distance': 10.0, 'speed_limit': 2.5}
         self.map_meta = {
             'resolution': 0.05,
             'width': 0,
@@ -66,10 +74,33 @@ class SharedDashboardState:
         self.fps = 30.0
         self._last_frame_time = time.time()
 
+    def update_depth_frame(self, heatmap_bgr):
+        with self.lock:
+            h, w = heatmap_bgr.shape[:2]
+            cv2.putText(
+                heatmap_bgr,
+                f"TRISHUL 3D DEPTH SENSOR [TURBO HEATMAP] | {time.strftime('%H:%M:%S')}",
+                (14, h - 14),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (0, 242, 254),
+                1,
+                cv2.LINE_AA,
+            )
+            ret, jpeg = cv2.imencode('.jpg', heatmap_bgr, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if ret:
+                self.depth_jpeg = jpeg.tobytes()
+
+    def update_yolo_frame(self, bgr_img):
+        with self.lock:
+            ret, jpeg = cv2.imencode('.jpg', bgr_img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if ret:
+                self.yolo_jpeg = jpeg.tobytes()
+                self.latest_jpeg = jpeg.tobytes()
+
     def update_frame(self, bgr_img):
         with self.lock:
             h, w = bgr_img.shape[:2]
-            # Overlay status banner
             cv2.putText(
                 bgr_img,
                 f"TRISHUL 3D DEPTH STREAM [/ugv/combined/image] | {time.strftime('%H:%M:%S')}",
@@ -83,6 +114,7 @@ class SharedDashboardState:
             ret, jpeg = cv2.imencode('.jpg', bgr_img, [cv2.IMWRITE_JPEG_QUALITY, 80])
             if ret:
                 self.latest_jpeg = jpeg.tobytes()
+                self.yolo_jpeg = jpeg.tobytes()
                 now = time.time()
                 dt = now - self._last_frame_time
                 if dt > 0:
@@ -140,8 +172,86 @@ class SharedDashboardState:
             if ret:
                 self.rear_jpeg = jpeg.tobytes()
 
-    def get_jpeg(self, feed='combined'):
+    def get_jpeg(self, feed='depth'):
         with self.lock:
+            # 1. 3D Depth Perception Heatmap (Real Depth Sensor)
+            if feed in ('depth', 'heatmap'):
+                if self.depth_jpeg is not None:
+                    return self.depth_jpeg
+                if self.raw_jpeg is not None:
+                    return self.raw_jpeg
+                # If depth frame is still loading, generate dynamic Turbo heatmap standby
+                hm = np.zeros((480, 640, 3), dtype=np.uint8)
+                for y in range(480):
+                    val = int((y / 480.0) * 255)
+                    hm[y, :] = (val, val, val)
+                hm = cv2.applyColorMap(hm[:, :, 0], cv2.COLORMAP_TURBO)
+                cv2.putText(hm, "TRISHUL 3D DEPTH SENSOR [ACQUIRING DEPTH HEATMAP...]", (30, 240),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 255, 255), 2, cv2.LINE_AA)
+                _, jpeg = cv2.imencode('.jpg', hm, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                return jpeg.tobytes()
+
+            # 2. AI Object Detection & Tactical HUD View
+            elif feed in ('yolo', 'ai', 'detection'):
+                if self.yolo_jpeg is not None:
+                    return self.yolo_jpeg
+                if self.latest_jpeg is not None:
+                    return self.latest_jpeg
+                if self.optical_jpeg is not None:
+                    return self.optical_jpeg
+
+            # 3. Forward Optical RGB Stream
+            elif feed in ('stereo', 'optical'):
+                if self.optical_jpeg is not None:
+                    return self.optical_jpeg
+                if self.yolo_jpeg is not None:
+                    return self.yolo_jpeg
+
+            # 4. Rear Reconnaissance Camera Feed
+            elif feed == 'rear':
+                if self.rear_jpeg is not None:
+                    return self.rear_jpeg
+
+            # Default fallback: return depth if available, otherwise latest
+            if self.depth_jpeg is not None:
+                return self.depth_jpeg
+            if self.latest_jpeg is not None:
+                return self.latest_jpeg
+            if self.raw_jpeg is not None:
+                return self.raw_jpeg
+                if self.yolo_jpeg is not None:
+                    return self.yolo_jpeg
+                if self.latest_jpeg is not None:
+                    return self.latest_jpeg
+
+            # 2. AI Object Detection & Tactical HUD View
+            elif feed in ('yolo', 'ai', 'detection'):
+                if self.yolo_jpeg is not None:
+                    return self.yolo_jpeg
+                if self.latest_jpeg is not None:
+                    return self.latest_jpeg
+                if self.depth_jpeg is not None:
+                    return self.depth_jpeg
+
+            # 3. Forward Optical RGB Stream
+            elif feed in ('stereo', 'optical'):
+                if self.optical_jpeg is not None:
+                    return self.optical_jpeg
+                if self.yolo_jpeg is not None:
+                    return self.yolo_jpeg
+
+            # 4. Fallback for 'combined' or unmapped query
+            if self.depth_jpeg is not None:
+                return self.depth_jpeg
+            if self.latest_jpeg is not None:
+                return self.latest_jpeg
+            if self.raw_jpeg is not None:
+                return self.raw_jpeg
+            elif feed in ('yolo', 'ai', 'detection'):
+                if self.yolo_jpeg is not None:
+                    return self.yolo_jpeg
+                if self.latest_jpeg is not None:
+                    return self.latest_jpeg
             # Handle forward stereo / optical camera feed
             if feed in ('stereo', 'optical'):
                 if self.optical_jpeg is not None:
@@ -348,6 +458,7 @@ class SharedDashboardState:
                 'laser_points': self.laser_points,
                 'path': self.path,
                 'detections': self.detections,
+            'yolo_decision': self.yolo_decision,
                 'map_meta': self.map_meta,
                 'map_image': self.map_jpeg_base64,
                 'map_version': self.map_version,
@@ -386,7 +497,7 @@ class DashboardHTTPRequestHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    feed = 'combined'
+                    feed = 'depth'
                     if 'feed=' in self.path:
                         try:
                             feed = self.path.split('feed=')[1].split('&')[0]
@@ -450,13 +561,39 @@ class DashboardHTTPRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json({'status': 'error', 'message': 'Non-numeric velocities'}, 400)
                 return
 
-            # Safety clamping
-            lin = max(-0.5, min(0.5, lin))
-            ang = max(-1.0, min(1.0, ang))
+            # Safety clamping up to calibrated limit
+            max_s = getattr(self.node_ref, "teleop_speed_limit", 2.5) if self.node_ref else 5.0
+            lin = max(-max_s, min(max_s, lin))
+            ang = max(-3.0, min(3.0, ang))
 
             if self.node_ref:
                 self.node_ref.publish_teleop(lin, ang)
             self._send_json({'status': 'ok'})
+
+                # Speed Limit Adjustment
+        elif self.path == '/api/speed_limit':
+            try:
+                speed = float(req_data.get('speed', 2.5))
+            except (ValueError, TypeError):
+                self._send_json({'status': 'error', 'message': 'Invalid speed parameter'}, 400)
+                return
+            if self.node_ref:
+                self.node_ref.set_speed_limit(speed)
+            self._send_json({'status': 'ok', 'speed': speed})
+            return
+
+        # 10m Radius Scan Routine
+        elif self.path == '/api/scan_10m':
+            if self.shared_state.estop_latched:
+                self._send_json({'status': 'error', 'message': 'E-STOP is latched.'}, 403)
+                return
+            if self.node_ref:
+                started = self.node_ref.start_10m_scan()
+                if started:
+                    self._send_json({'status': 'ok', 'message': '10m Area Scan Sequence Started'})
+                    return
+            self._send_json({'status': 'error', 'message': 'Could not start scan'}, 500)
+            return
 
         # Cancel / Preempt Goal
         elif self.path == '/api/cancel':
@@ -532,10 +669,16 @@ class TrishulDashboardServerNode(Node):
         self.get_logger().info(f"Serving Trishul Web Dashboard from: {self.web_dir}")
 
         self.shared_state = SharedDashboardState()
+        self.bridge = CvBridge()
         self.cb_group = ReentrantCallbackGroup()
 
         # Publishers
         self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+
+        self.cmd_vel_smoothed_pub = self.create_publisher(Twist, '/cmd_vel_smoothed', 10)
+        self.teleop_speed_limit = 2.5
+        if SpeedLimit is not None:
+            self.speed_limit_pub = self.create_publisher(SpeedLimit, '/speed_limit', 10)
         self.safety_cmd_pub = self.create_publisher(Twist, '/ugv/cmd_vel_request', 10)
 
         # Authoritative Map-Frame Localization (TF2 map -> base_footprint)
@@ -582,6 +725,10 @@ class TrishulDashboardServerNode(Node):
         self.image_sub = self.create_subscription(
             Image, '/ugv/combined/image', self.image_callback, sensor_qos, callback_group=self.cb_group
         )
+        self.depth_hm_sub = self.create_subscription(
+            Image, '/ugv/depth/heatmap', self.depth_hm_callback, sensor_qos, callback_group=self.cb_group
+        )
+
         self.rear_image_sub = self.create_subscription(
             Image, '/camera/rear/image_raw', self.rear_image_callback, sensor_qos, callback_group=self.cb_group
         )
@@ -637,15 +784,21 @@ class TrishulDashboardServerNode(Node):
         self.get_logger().info(f"TRISHUL MISSION CONTROL ACTIVE: http://127.0.0.1:{self.port}")
         self.get_logger().info("=" * 65)
 
+    def depth_hm_callback(self, msg: Image):
+        try:
+            if msg.encoding in ('bgr8', 'rgb8'):
+                img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+                self.shared_state.update_depth_frame(img)
+        except Exception as e:
+            self.get_logger().error(f"Depth heatmap callback error: {e}", throttle_duration_sec=5.0)
+
     def image_callback(self, msg: Image):
         self._decode_image(msg)
 
     def rear_image_callback(self, msg: Image):
         try:
             if msg.encoding in ('bgr8', 'rgb8'):
-                img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
-                if msg.encoding == 'rgb8':
-                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
                 self.shared_state.update_rear_frame(img)
         except Exception:
             pass
@@ -653,46 +806,39 @@ class TrishulDashboardServerNode(Node):
     def color_image_callback(self, msg: Image):
         try:
             if msg.encoding in ('bgr8', 'rgb8'):
-                img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
-                if msg.encoding == 'rgb8':
-                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
                 self.shared_state.update_optical_frame(img)
         except Exception:
             pass
 
     def raw_image_callback(self, msg: Image):
         try:
-            if msg.encoding in ('bgr8', 'rgb8'):
-                img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
-                if msg.encoding == 'rgb8':
-                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            if msg.encoding in ('32FC1', '16UC1', '32F', 'passthrough'):
+                depth_cv = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+                if msg.encoding == '16UC1':
+                    depth_cv = depth_cv.astype(np.float32) / 1000.0
+                depth_clean = np.nan_to_num(depth_cv, nan=0.0, posinf=6.0, neginf=0.0)
+                depth_scaled = np.clip(depth_clean / 6.0 * 255.0, 0, 255).astype(np.uint8)
+                heatmap = cv2.applyColorMap(depth_scaled, cv2.COLORMAP_TURBO)
+                self.shared_state.update_depth_frame(heatmap)
+                self.shared_state.update_raw_frame(heatmap)
+            elif msg.encoding in ('bgr8', 'rgb8'):
+                img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
                 self.shared_state.update_raw_frame(img)
-                if self.shared_state.latest_jpeg is None:
-                    self.shared_state.update_frame(img)
-            elif msg.encoding == '32FC1':
-                depth = np.frombuffer(msg.data, dtype=np.float32).reshape((msg.height, msg.width))
-                depth_clean = np.nan_to_num(depth, nan=0.0, posinf=5.0, neginf=0.0)
-                depth_scaled = np.clip(depth_clean / 5.0 * 255.0, 0, 255).astype(np.uint8)
-                img = cv2.applyColorMap(depth_scaled, cv2.COLORMAP_TURBO)
-                self.shared_state.update_raw_frame(img)
-                if self.shared_state.latest_jpeg is None:
-                    self.shared_state.update_frame(img)
-        except Exception:
-            pass
+        except Exception as e:
+            self.get_logger().error(f"Raw depth conversion error: {e}", throttle_duration_sec=5.0)
 
     def _decode_image(self, msg: Image):
         try:
             if msg.encoding in ('bgr8', 'rgb8'):
-                img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
-                if msg.encoding == 'rgb8':
-                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                self.shared_state.update_frame(img)
+                img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+                self.shared_state.update_yolo_frame(img)
             elif msg.encoding == 'mono8':
-                img = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width))
+                img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
                 img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-                self.shared_state.update_frame(img_bgr)
-        except Exception:
-            pass
+                self.shared_state.update_yolo_frame(img_bgr)
+        except Exception as e:
+            self.get_logger().error(f"AI image decode error: {e}", throttle_duration_sec=5.0)
 
     def _sync_map_pose(self):
         """Authoritative map-frame pose resolution identical to RViz and Nav2 costmaps."""
@@ -796,6 +942,82 @@ class TrishulDashboardServerNode(Node):
             self.cmd_vel_pub.publish(zero_twist)
             self.safety_cmd_pub.publish(zero_twist)
 
+    def set_speed_limit(self, speed):
+        speed = max(0.2, min(5.0, float(speed)))
+        self.teleop_speed_limit = speed
+        if SpeedLimit is not None and hasattr(self, 'speed_limit_pub'):
+            lim_msg = SpeedLimit()
+            lim_msg.percentage = False
+            lim_msg.speed_limit = float(speed)
+            self.speed_limit_pub.publish(lim_msg)
+        self.get_logger().info(f"[MISSION CONTROL] Vehicle speed limit calibrated to {speed:.2f} m/s")
+
+    def start_10m_scan(self):
+        if self.shared_state.estop_latched:
+            return False
+        scan_t = threading.Thread(target=self._run_10m_scan_routine, daemon=True)
+        scan_t.start()
+        return True
+
+    def _run_10m_scan_routine(self):
+        self.get_logger().info("[RADAR] Initiating Autonomous 10m Sector Sweep & Area Traversal...")
+        if self.active_goal_handle is not None:
+            self.get_logger().info("[RADAR] Preempting active Nav2 goal for 10m area sweep...")
+            self.active_goal_handle.cancel_goal_async()
+            self.active_goal_handle = None
+
+        with self.shared_state.lock:
+            self.shared_state.nav_state = 'SCANNING 10M'
+
+        sweep_twist = Twist()
+        sweep_twist.angular.z = 1.20
+
+        fwd_twist = Twist()
+        fwd_twist.linear.x = 2.0  # 2.0 m/s cruise speed
+
+        stop_twist = Twist()
+
+        def _publish_cmd(cmd, duration_sec, dt=0.05):
+            steps = int(duration_sec / dt)
+            for _ in range(steps):
+                if self.shared_state.estop_latched:
+                    break
+                self.cmd_vel_pub.publish(cmd)
+                if hasattr(self, 'cmd_vel_smoothed_pub'):
+                    self.cmd_vel_smoothed_pub.publish(cmd)
+                self.safety_cmd_pub.publish(cmd)
+                time.sleep(dt)
+
+        # Phase 1: Baseline 360-degree Panoramic Sweep at Origin (~5.2s = 360 deg)
+        self.get_logger().info("[RADAR] Phase 1/4: 360-degree Origin Radar Sweep...")
+        _publish_cmd(sweep_twist, duration_sec=5.2)
+        _publish_cmd(stop_twist, duration_sec=0.3)
+
+        # Phase 2: Physically Move 10.0 Meters Outward into the Sector (10m / 2.0m/s = 5.0s)
+        if not self.shared_state.estop_latched:
+            self.get_logger().info("[RADAR] Phase 2/4: Transiting 10 meters outward to scan perimeter...")
+            _publish_cmd(fwd_twist, duration_sec=5.0)
+            _publish_cmd(stop_twist, duration_sec=0.4)
+
+        # Phase 3: 360-degree Panoramic Radar Sweep at 10m Perimeter Point
+        if not self.shared_state.estop_latched:
+            self.get_logger().info("[RADAR] Phase 3/4: 360-degree Perimeter Radar Sweep at 10m mark...")
+            _publish_cmd(sweep_twist, duration_sec=5.2)
+            _publish_cmd(stop_twist, duration_sec=0.4)
+
+        # Phase 4: Wide Exploratory Perimeter Arc (lateral corridor sweep)
+        if not self.shared_state.estop_latched:
+            self.get_logger().info("[RADAR] Phase 4/4: Perimeter lateral coverage sweep...")
+            arc_twist = Twist()
+            arc_twist.linear.x = 1.2
+            arc_twist.angular.z = 0.5
+            _publish_cmd(arc_twist, duration_sec=4.0)
+            _publish_cmd(stop_twist, duration_sec=0.5)
+
+        with self.shared_state.lock:
+            self.shared_state.nav_state = 'IDLE'
+        self.get_logger().info("[RADAR] Full 10m Operational Radius Mapped & Refreshed Successfully.")
+
     def publish_teleop(self, linear, angular):
         if self.shared_state.estop_latched:
             return
@@ -809,7 +1031,8 @@ class TrishulDashboardServerNode(Node):
                 self.shared_state.nav_state = 'TELEOP'
 
         t = Twist()
-        t.linear.x = float(linear)
+        max_s = getattr(self, "teleop_speed_limit", 2.5)
+        t.linear.x = max(-max_s, min(max_s, float(linear)))
         t.angular.z = float(angular)
         self.cmd_vel_pub.publish(t)
         self.safety_cmd_pub.publish(t)

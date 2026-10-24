@@ -58,21 +58,21 @@
                     <span class="hud-bracket">]</span>
                 </div>
                 <div class="camera-selectors">
-                    <button class="cam-btn active" data-feed="combined" id="btn-cam-depth" title="Switch to 3D Depth Perception Heatmap">3D DEPTH HEATMAP</button>
-                    <button class="cam-btn" data-feed="stereo" id="btn-cam-stereo" title="Switch to Stereo Optical Camera">STEREO CAM</button>
-                    <button class="cam-btn" data-feed="rear" id="btn-cam-rear" title="Switch to Rear Tactical Reconnaissance Camera">REAR RECON CAM</button>
+                    <button class="cam-btn active" data-feed="depth" id="btn-cam-depth" title="Switch to 3D Depth Perception Heatmap">🔥 3D DEPTH HEATMAP</button>
+                    <button class="cam-btn" data-feed="yolo" id="btn-cam-yolo" title="AI Object Detection & Tactical HUD">🎯 AI DETECTION</button>
+                    <button class="cam-btn" data-feed="stereo" id="btn-cam-stereo" title="Switch to Stereo Optical Camera">📷 OPTICAL RGB</button>
                     <button class="cam-btn btn-pip" id="btn-toggle-pip" title="Toggle Picture-in-Picture Dual Vision">✨ DUAL PiP</button>
                 </div>
             </div>
 
             <div class="video-viewport" id="video-viewport">
-                <img src="/stream/video" id="live-video-feed" alt="Live UGV Camera Stream">
+                <img src="/stream/video?feed=depth" id="live-video-feed" alt="Live UGV Camera Stream">
                 
                 <!-- Picture-in-Picture Secondary Stream Inset -->
                 <div class="pip-viewport" id="pip-viewport" style="display: none;">
-                    <img src="/stream/video?feed=stereo" id="pip-video-feed" alt="Secondary Camera Stream">
+                    <img src="/stream/video?feed=yolo" id="pip-video-feed" alt="Secondary Camera Stream">
                     <div class="pip-hud">
-                        <span class="pip-label" id="pip-label">STEREO OPTICAL [PiP]</span>
+                        <span class="pip-label" id="pip-label">AI DETECTION [PiP]</span>
                         <button class="pip-swap-btn" id="btn-swap-pip" title="Swap Main and PiP View">⮂ SWAP</button>
                     </div>
                 </div>
@@ -150,7 +150,10 @@
                 <button class="btn-tactical btn-mission" id="btn-patrol-2">
                     🚩 RECON SECTOR BRAVO
                 </button>
-                <button class="btn-tactical btn-mission" id="btn-return-home">
+                                <button class="btn-tactical btn-mission" id="btn-scan-10m" style="border: 1px solid #00f2fe; color: #00f2fe; background: rgba(0, 242, 254, 0.1);">
+                    🌐 SCAN 10M RADIUS
+                </button>
+<button class="btn-tactical btn-mission" id="btn-return-home">
                     🏠 RETURN TO STAGING
                 </button>
                 <button class="btn-tactical btn-secondary" id="btn-clear-goal">
@@ -178,8 +181,8 @@
                     <div></div>
                 </div>
                 <div class="teleop-meta">
-                    <label for="speed-slider">SPEED LIMIT: <span id="val-speed-limit">0.25</span> m/s</label>
-                    <input type="range" id="speed-slider" min="0.05" max="0.50" step="0.05" value="0.25">
+                    <label for="speed-slider">SPEED LIMIT: <span id="val-speed-limit">2.50</span> m/s</label>
+                    <input type="range" id="speed-slider" min="0.50" max="5.00" step="0.25" value="2.50">
                     <div class="keyboard-legend">Keyboard: <b>[W/A/S/D]</b> Drive | <b>[Space]</b> Brake</div>
                 </div>
             </div>
@@ -205,6 +208,11 @@
                     <div class="gauge-value highlight-green" id="val-safety-status">CLEAR</div>
                     <div class="gauge-label">SAFETY CONTROLLER</div>
                 </div>
+                <div class="gauge-item">
+                    <div class="gauge-value highlight-green" id="val-yolo-decision">CLEAR</div>
+                    <div class="gauge-label">YOLO AI ROUTE DECISION</div>
+                </div>
+
             </div>
         </div>
 
