@@ -70,7 +70,7 @@
       <sensor name="intel_realsense_r200_rgb" type="camera">
         <pose>0.32 0 0.12 0 0 0</pose>
         <always_on>true</always_on>
-        <update_rate>15</update_rate>
+        <update_rate>10</update_rate>
         <visualize>false</visualize>
         <topic>/camera/color/image_raw</topic>
         <camera_info_topic>/camera/color/camera_info</camera_info_topic>
@@ -91,7 +91,7 @@
       <sensor name="intel_realsense_r200_depth" type="depth">
         <pose>0.32 0 0.12 0 0 0</pose>
         <always_on>true</always_on>
-        <update_rate>15</update_rate>
+        <update_rate>10</update_rate>
         <visualize>false</visualize>
         <topic>/camera/image_raw</topic>
         <camera_info_topic>/camera/camera_info</camera_info_topic>
@@ -111,7 +111,7 @@
       <sensor name="rear_recon_camera" type="camera">
         <pose>-0.38 0 0.12 0 0 3.14159</pose>
         <always_on>true</always_on>
-        <update_rate>15</update_rate>
+        <update_rate>8</update_rate>
         <visualize>false</visualize>
         <topic>/camera/rear/image_raw</topic>
         <camera_info_topic>/camera/rear/camera_info</camera_info_topic>
@@ -132,8 +132,8 @@
       <sensor name="front_lidar" type="gpu_lidar">
         <pose>0.18 0 0.20 0 0 0</pose>
         <always_on>true</always_on>
-        <update_rate>8</update_rate>
-        <visualize>true</visualize>
+        <update_rate>10</update_rate>
+        <visualize>false</visualize>
         <topic>/scan</topic>
         <gz_frame_id>base_scan</gz_frame_id>
         <lidar>
@@ -444,7 +444,7 @@
       <tf_topic>/tf</tf_topic>
       <frame_id>odom</frame_id>
       <child_frame_id>base_footprint</child_frame_id>
-      <odom_publisher_frequency>30</odom_publisher_frequency>
+      <odom_publish_frequency>30</odom_publish_frequency>
       <left_joint>left_front_joint</left_joint>
       <left_joint>left_rear_joint</left_joint>
       <right_joint>right_front_joint</right_joint>

@@ -15,14 +15,16 @@ class DepthToLaserScanNode(Node):
         self.declare_parameter("num_beams", 360)
         self.declare_parameter("fov_degrees", 60.0)
         self.declare_parameter("scan_height_pct", 0.2)
+        self.declare_parameter("depth_topic", "/camera/image_raw")
         self.min_depth = self.get_parameter("min_depth").value
         self.max_depth = self.get_parameter("max_depth").value
         self.num_beams = self.get_parameter("num_beams").value
         self.fov = math.radians(self.get_parameter("fov_degrees").value)
         self.scan_height_pct = self.get_parameter("scan_height_pct").value
+        depth_topic = self.get_parameter("depth_topic").value
         self.bridge = CvBridge()
         self.depth_sub = self.create_subscription(
-            Image, "/camera/depth/image_raw", self.depth_callback, 10)
+            Image, depth_topic, self.depth_callback, 10)
         self.scan_pub = self.create_publisher(LaserScan, "/scan", 10)
         self.get_logger().info("Depth->LaserScan READY")
 

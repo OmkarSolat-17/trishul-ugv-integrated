@@ -11,16 +11,16 @@ echo "=== Trishul UGV: Checking Development Environment ==="
 # 1. Check OS Distribution
 if [ -f /etc/os-release ]; then
     . /etc/os-release
-    echo "[✓] Detected OS: $NAME $VERSION_ID ($UBUNTU_CODENAME)"
-    if [ "$UBUNTU_CODENAME" != "noble" ]; then
-        echo "[!] Warning: Target environment is Ubuntu 24.04 LTS (Noble Numbat). Found: $UBUNTU_CODENAME"
+    echo "[✓] Detected OS: $NAME $VERSION_ID (${UBUNTU_CODENAME:-$VERSION_CODENAME})"
+    if [ "${UBUNTU_CODENAME:-}" != "noble" ]; then
+        echo "[!] Warning: Target environment is Ubuntu 24.04 LTS (Noble Numbat). Found: ${UBUNTU_CODENAME:-$VERSION_CODENAME}"
     fi
 else
     echo "[!] Unknown Linux Distribution."
 fi
 
 # 2. Check ROS 2 Jazzy Installation
-if [ -z "$ROS_DISTRO" ]; then
+if [ -z "${ROS_DISTRO:-}" ]; then
     if [ -f "/opt/ros/jazzy/setup.bash" ]; then
         echo "[✓] Sourcing /opt/ros/jazzy/setup.bash..."
         source /opt/ros/jazzy/setup.bash
@@ -43,14 +43,27 @@ else
     echo "[!] Gazebo ('gz') not found. Install via 'sudo apt install ros-jazzy-ros-gz'."
 fi
 
-# 4. Check Colcon & Build Tools
+# 4. Check Xvfb & Mesa OpenGL Utilities (Required for WSL2 headless sensor rendering)
+if command -v xvfb-run &> /dev/null; then
+    echo "[✓] xvfb-run virtual framebuffer is available (WSL2 headless Gazebo fallback ready)."
+else
+    echo "[!] xvfb-run not found. Install via 'sudo apt install -y xvfb mesa-utils libgl1-mesa-dri'."
+fi
+
+if command -v glxinfo &> /dev/null; then
+    echo "[✓] glxinfo (mesa-utils) is available."
+else
+    echo "[!] glxinfo not found. Install via 'sudo apt install -y mesa-utils'."
+fi
+
+# 5. Check Colcon & Build Tools
 if command -v colcon &> /dev/null; then
     echo "[✓] colcon build tool is available."
 else
     echo "[!] colcon not found. Install via 'sudo apt install python3-colcon-common-extensions'."
 fi
 
-# 5. Check rosdep
+# 6. Check rosdep
 if command -v rosdep &> /dev/null; then
     echo "[✓] rosdep is available."
 else

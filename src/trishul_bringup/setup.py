@@ -33,6 +33,7 @@ setup(
     entry_points={
         'console_scripts': [
             'dashboard_server = trishul_bringup.dashboard_server:main',
+            'system_coordinator = trishul_bringup.system_coordinator:main',
         ],
     },
 )
