@@ -13,13 +13,12 @@
 
 ## ⚡ Quickstart: Launch Complete System & Dashboard
 
-Run the unified, single-command launcher (kills any lingering background processes, configures GPU acceleration, and boots all nodes):
+Run the unified, single-command launcher (purges stale background nodes, auto-detects WSL2 GPU vs headless Xvfb software rendering, and boots all subsystems):
 ```bash
-cd /home/papa_ji/project/Trishul/merg-trishul
 ./run_demo.sh
 ```
 
-You can select a simulation profile interactively from the terminal menu, or launch directly:
+You can select a simulation profile interactively from the terminal menu, or launch directly (add `--headless` on WSL2 systems without hardware OpenGL 3.3+):
 ```bash
 # 1) Standard UGV in Sandbox Proving Ground (AMCL Baseline):
 ./run_demo.sh --profile default
@@ -29,6 +28,9 @@ You can select a simulation profile interactively from the terminal menu, or lau
 
 # 3) 4WD Skid-Steer UGV in Final City World (Complex Terrain, Flyovers, Bridges & Rivers):
 ./run_demo.sh --profile trishul_final_4wd
+
+# Force headless Gazebo server under Xvfb + Mesa llvmpipe (WSL2 software rendering safe mode):
+./run_demo.sh --headless --profile city_normal_4wd
 ```
 
 ### Accessing the BVR Mission Control Web Dashboard:

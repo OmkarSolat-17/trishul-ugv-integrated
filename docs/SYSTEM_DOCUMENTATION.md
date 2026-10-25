@@ -107,9 +107,10 @@ The Trishul software stack strictly conforms to standard ROS 2 conventions (REP-
 
 To launch the complete system cleanly with one command:
 ```bash
-cd /home/papa_ji/project/Trishul/merg-trishul
 ./run_demo.sh
 ```
+
+On WSL2 machines without hardware OpenGL 3.3+ acceleration, `./run_demo.sh` automatically switches Gazebo Harmonic to server-only mode (`-s`) under `xvfb-run` + Mesa `llvmpipe` software rendering (or force it explicitly via `./run_demo.sh --headless --profile city_normal_4wd`).
 
 Supported simulation profiles:
 - **`--profile default`**: Standard UGV in TB3 Sandbox with AMCL & 2D LiDAR.

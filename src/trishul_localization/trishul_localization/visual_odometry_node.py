@@ -20,12 +20,16 @@ class VisualOdometryNode(Node):
         self.declare_parameter("imu_weight", 0.3)
         self.declare_parameter("use_imu_fusion", True)
         self.declare_parameter("publish_tf", False)
+        self.declare_parameter("color_topic", "/camera/color/image_raw")
+        self.declare_parameter("imu_topic", "/imu")
         self.publish_tf_enabled = self.get_parameter("publish_tf").value
         self.orb_features = self.get_parameter("orb_features").value
         self.min_matches = self.get_parameter("min_matches").value
         self.scale = self.get_parameter("scale_factor").value
         self.imu_weight = self.get_parameter("imu_weight").value
         self.use_imu = self.get_parameter("use_imu_fusion").value
+        color_topic = self.get_parameter("color_topic").value
+        imu_topic = self.get_parameter("imu_topic").value
         self.x = 0.0
         self.y = 0.0
         self.theta = 0.0
@@ -39,9 +43,9 @@ class VisualOdometryNode(Node):
         self.bridge = CvBridge()
         self.tf_broadcaster = TransformBroadcaster(self)
         self.rgb_sub = self.create_subscription(
-            Image, "/camera/color/image_raw", self.image_callback, 10)
+            Image, color_topic, self.image_callback, 10)
         self.imu_sub = self.create_subscription(
-            Imu, "/imu/data", self.imu_callback, 10)
+            Imu, imu_topic, self.imu_callback, 10)
         self.odom_pub = self.create_publisher(Odometry, "/vo/odom", 10)
         self.get_logger().info("Visual Odometry READY")
 

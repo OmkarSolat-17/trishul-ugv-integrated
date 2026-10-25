@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
         zoomScale: 45,
         viewMode: 'fixed', // 'fixed' (static arena, robot moves) or 'follow' (centered on robot)
         arenaCenter: { x: 0.0, y: 0.0 },
+        slamMode: false,
+        nav2Ready: false,
         trail: [], // Pixels per meter
         activeFeed: 'depth',
         lastMapVersion: -1,
@@ -107,6 +109,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             state.connected = true;
             pollFailures = 0;
+            state.slamMode = Boolean(data.slam_mode);
+            state.nav2Ready = Boolean(data.nav2_ready);
+
+            const elSlamBadge = document.getElementById('slam-mode-badge');
+            if (elSlamBadge) {
+                elSlamBadge.textContent = state.slamMode ? 'SLAM: LIVE ONLINE' : 'LOC: AMCL MAP';
+            }
 
             // Update System Status Header
             if (elSysStatus) {
@@ -114,12 +123,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     elSysStatus.textContent = 'SYS: EMERGENCY STOP ENGAGED';
                     elSysStatus.className = 'status-badge danger';
                     if (elSysPulse) elSysPulse.className = 'pulse-dot danger';
+                } else if (!data.nav2_ready) {
+                    elSysStatus.textContent = 'SYS: INITIALIZING SLAM & NAV2...';
+                    elSysStatus.className = 'status-badge warn';
+                    if (elSysPulse) elSysPulse.className = 'pulse-dot warn';
                 } else if (data.nav_state === 'NAVIGATING') {
                     elSysStatus.textContent = 'SYS: AUTONOMOUS MISSION ACTIVE';
                     elSysStatus.className = 'status-badge active';
                     if (elSysPulse) elSysPulse.className = 'pulse-dot active';
                 } else {
-                    elSysStatus.textContent = 'SYS: OPERATIONAL / STANDBY';
+                    elSysStatus.textContent = 'SYS: AUTONOMOUS READY';
                     elSysStatus.className = 'status-badge active';
                     if (elSysPulse) elSysPulse.className = 'pulse-dot active';
                 }
@@ -316,7 +329,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         data.detections.forEach((d) => {
                             const chip = document.createElement('div');
                             chip.className = 'target-chip';
-                            chip.innerHTML = `<span class="target-name">${d.name}</span> <span class="target-conf">${(d.confidence * 100).toFixed(0)}%</span>`;
+                            const label = (d.name || d.class || 'TARGET').toUpperCase();
+                            const distTag = d.distance !== undefined ? ` · ${Number(d.distance).toFixed(1)}m` : '';
+                            chip.innerHTML = `<span class="target-name">${label}${distTag}</span> <span class="target-conf">${(d.confidence * 100).toFixed(0)}%</span>`;
                             elChipsContainer.appendChild(chip);
                         });
                     }
@@ -404,10 +419,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.save();
         ctx.strokeStyle = 'rgba(30, 41, 59, 0.6)';
         ctx.lineWidth = 1;
-        const startX = Math.floor(state.pose.x - (w / 2) / scale) - 1;
-        const endX = Math.ceil(state.pose.x + (w / 2) / scale) + 1;
-        const startY = Math.floor(state.pose.y - (h / 2) / scale) - 1;
-        const endY = Math.ceil(state.pose.y + (h / 2) / scale) + 1;
+        const gridOx = state.viewMode === 'fixed' ? state.arenaCenter.x : state.pose.x;
+        const gridOy = state.viewMode === 'fixed' ? state.arenaCenter.y : state.pose.y;
+        const startX = Math.floor(gridOx - (w / 2) / scale) - 1;
+        const endX = Math.ceil(gridOx + (w / 2) / scale) + 1;
+        const startY = Math.floor(gridOy - (h / 2) / scale) - 1;
+        const endY = Math.ceil(gridOy + (h / 2) / scale) + 1;
 
         for (let gx = startX; gx <= endX; gx += 1.0) {
             const sp = worldToScreen(gx, 0);
@@ -429,6 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.laserPoints && state.laserPoints.length > 0) {
             const cos_yaw = Math.cos(state.pose.yaw);
             const sin_yaw = Math.sin(state.pose.yaw);
+            const rOrigin = worldToScreen(state.pose.x, state.pose.y);
 
             // Draw subtle cyan scan beams from robot to obstacles
             ctx.save();
@@ -441,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const wx = state.pose.x + (rx * cos_yaw - ry * sin_yaw);
                 const wy = state.pose.y + (rx * sin_yaw + ry * cos_yaw);
                 const sp = worldToScreen(wx, wy);
-                ctx.moveTo(cx, cy);
+                ctx.moveTo(rOrigin.x, rOrigin.y);
                 ctx.lineTo(sp.x, sp.y);
             });
             ctx.stroke();
@@ -735,17 +753,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-patrol-1')?.addEventListener('click', () => {
         logEvent('MISSION', 'Dispatching Preset: Patrol Sector Alpha');
-        dispatchGoal(1.5, -0.5, 0.0);
+        if (state.slamMode) {
+            dispatchGoal(6.0, 0.0, 0.0);
+        } else {
+            dispatchGoal(1.5, -0.5, 0.0);
+        }
     });
 
     document.getElementById('btn-patrol-2')?.addEventListener('click', () => {
         logEvent('MISSION', 'Dispatching Preset: Recon Sector Bravo');
-        dispatchGoal(-1.2, 0.8, 1.57);
+        if (state.slamMode) {
+            dispatchGoal(-6.0, 0.5, 3.14);
+        } else {
+            dispatchGoal(-1.2, 0.8, 1.57);
+        }
     });
 
     document.getElementById('btn-return-home')?.addEventListener('click', () => {
         logEvent('MISSION', 'Dispatching Preset: Return to Staging (Home)');
-        dispatchGoal(-2.0, -0.5, 0.0);
+        if (state.slamMode) {
+            dispatchGoal(0.0, 0.0, 0.0);
+        } else {
+            dispatchGoal(-2.0, -0.5, 0.0);
+        }
     });
 
     document.getElementById('btn-clear-goal')?.addEventListener('click', async () => {

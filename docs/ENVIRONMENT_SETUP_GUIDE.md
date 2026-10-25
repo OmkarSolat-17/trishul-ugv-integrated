@@ -47,10 +47,10 @@ WSLg utilizes vGPU acceleration through your Windows graphics driver:
 
 Open your Ubuntu 24.04 terminal:
 
-### Step 3.1: System Updates & Essential Tools
+### Step 3.1: System Updates & Essential Tools (Including WSL2 Headless Xvfb Fallback)
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y locales curl gnupg lsb-release build-essential git python3-pip python3-venv mesa-utils
+sudo apt install -y locales curl gnupg lsb-release build-essential git python3-pip python3-venv mesa-utils xvfb libgl1-mesa-dri
 ```
 
 ### Step 3.2: Verify 3D Acceleration in WSLg

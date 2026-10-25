@@ -1,6 +1,7 @@
-"""TRISHUL - SLAM Launch (Member 3)
-Fake test : ros2 launch trishul_localization slam_launch.py scan_from_depth:=false
-Gazebo    : ros2 launch trishul_localization slam_launch.py use_sim_time:=true
+"""TRISHUL - SLAM Launch (Member 3).
+
+360 LiDAR mode (default): ros2 launch trishul_localization slam_launch.py use_sim_time:=true
+Depth-scan mode: ros2 launch trishul_localization slam_launch.py scan_from_depth:=true
 """
 import os
 from launch import LaunchDescription
@@ -17,10 +18,14 @@ def generate_launch_description():
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     scan_from_depth = LaunchConfiguration("scan_from_depth")
+    depth_topic = LaunchConfiguration("depth_topic")
+    depth_info_topic = LaunchConfiguration("depth_info_topic")
 
     args = [
-        DeclareLaunchArgument("use_sim_time", default_value="false"),
-        DeclareLaunchArgument("scan_from_depth", default_value="true"),
+        DeclareLaunchArgument("use_sim_time", default_value="true"),
+        DeclareLaunchArgument("scan_from_depth", default_value="false"),
+        DeclareLaunchArgument("depth_topic", default_value="/camera/image_raw"),
+        DeclareLaunchArgument("depth_info_topic", default_value="/camera/camera_info"),
     ]
 
     depth_to_scan = Node(
@@ -29,15 +34,15 @@ def generate_launch_description():
         name="depth_to_scan",
         condition=IfCondition(scan_from_depth),
         remappings=[
-            ("depth", "/camera/depth/image_raw"),
-            ("depth_camera_info", "/camera/depth/camera_info"),
+            ("depth", depth_topic),
+            ("depth_camera_info", depth_info_topic),
             ("scan", "/scan"),
         ],
         parameters=[{
             "use_sim_time": use_sim_time,
             "output_frame": "camera_link",
             "range_min": 0.2,
-            "range_max": 10.0,
+            "range_max": 15.0,
             "scan_height": 10,
         }],
         output="screen",
@@ -51,11 +56,11 @@ def generate_launch_description():
         output="screen",
     )
 
-    configure_cmd = TimerAction(period=6.0, actions=[ExecuteProcess(
+    configure_cmd = TimerAction(period=4.0, actions=[ExecuteProcess(
         cmd=["ros2", "lifecycle", "set", "/slam_toolbox", "configure"],
         output="screen")])
 
-    activate_cmd = TimerAction(period=9.0, actions=[ExecuteProcess(
+    activate_cmd = TimerAction(period=7.0, actions=[ExecuteProcess(
         cmd=["ros2", "lifecycle", "set", "/slam_toolbox", "activate"],
         output="screen")])
 

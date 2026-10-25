@@ -37,7 +37,7 @@
     <scene>
       <ambient>0.400000006 0.400000006 0.400000006 1</ambient>
       <background>0.699999988 0.699999988 0.699999988 1</background>
-      <shadows>true</shadows>
+      <shadows>false</shadows>
     </scene>
     <model name='main_road'>
       <static>true</static>
